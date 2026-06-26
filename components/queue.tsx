@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Mail, Image as ImageIcon, Info, Check, X, Linkedin, Copy, ExternalLink,
+  Mail, Image as ImageIcon, Info, Check, X, Share2, Copy, ExternalLink,
   Ban, RotateCcw, AlertTriangle,
 } from "lucide-react";
 import {
@@ -81,7 +81,7 @@ function EmailCard({ s, clientId }: { s: QueueSequence; clientId: string }) {
             }`}
           >
             <span className="inline-flex items-center gap-1">
-              {v === "email" ? <Mail size={11} /> : <Linkedin size={11} />}
+              {v === "email" ? <Mail size={11} /> : <Share2 size={11} />}
               {v === "email" ? "Email" : "LinkedIn"}
             </span>
           </button>
