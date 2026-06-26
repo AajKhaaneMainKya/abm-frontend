@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "./providers";
 import Shell from "@/components/shell";
+import { WindowManagerProvider } from "@/components/window-manager";
 
 export const metadata: Metadata = {
   title: "ABM System v1.0",
@@ -15,7 +16,9 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="h-full">
         <Providers>
-          <Shell>{children}</Shell>
+          <WindowManagerProvider>
+            <Shell>{children}</Shell>
+          </WindowManagerProvider>
         </Providers>
       </body>
     </html>

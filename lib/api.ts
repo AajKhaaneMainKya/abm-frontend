@@ -276,3 +276,50 @@ export async function rejectCreative(clientId: string, creativeId: string) {
   );
   return data;
 }
+
+/* ------------------------------------------------------------------ */
+/* Handoffs (Phase H)                                                 */
+/* ------------------------------------------------------------------ */
+
+export interface Handoff {
+  id: string;
+  account_id: string;
+  company: string | null;
+  dm_name: string | null;
+  dm_email: string | null;
+  intent_score: number | null;
+  trigger_reason: string | null;
+  all_touches: unknown[];
+  signals_detected: unknown[];
+  recommended_talk_track: string | null;
+  urgency: string;
+  status: string;
+  created_at: string;
+}
+
+export async function getHandoffs(clientId: string): Promise<Handoff[]> {
+  const { data } = await api.get<{ handoffs: Handoff[] }>(
+    `/api/clients/${clientId}/handoffs`,
+  );
+  return data.handoffs ?? [];
+}
+
+export interface WeeklyBrief {
+  id: string;
+  week_of: string;
+  accounts_moved_forward: number;
+  accounts_stalled: number;
+  best_angle: string | null;
+  worst_angle: string | null;
+  icp_refinement_suggestions: string[];
+  recommended_focus: string | null;
+  orchestrator_guidance: string | null;
+  created_at: string;
+}
+
+export async function getWeeklyBrief(
+  clientId: string,
+): Promise<{ latest: WeeklyBrief | null; history: WeeklyBrief[] }> {
+  const { data } = await api.get(`/api/clients/${clientId}/weekly-brief`);
+  return data;
+}

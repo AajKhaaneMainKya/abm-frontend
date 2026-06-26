@@ -8,7 +8,71 @@
 import * as React from "react";
 import * as RadixTabs from "@radix-ui/react-tabs";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Minus, Square } from "lucide-react";
+import { X, Minus, Square, Copy } from "lucide-react";
+
+/* ---------------- Functional window title bar (window manager) ---------------- */
+
+export function XpTitleBar({
+  title,
+  icon,
+  active = true,
+  isMaximized = false,
+  onMinimize,
+  onMaximize,
+  onClose,
+  onPointerDown,
+  onDoubleClick,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  active?: boolean;
+  isMaximized?: boolean;
+  onMinimize?: () => void;
+  onMaximize?: () => void;
+  onClose?: () => void;
+  onPointerDown?: (e: React.PointerEvent) => void;
+  onDoubleClick?: () => void;
+}) {
+  // Stop drag from starting when a control button is pressed.
+  const stop = (e: React.PointerEvent) => e.stopPropagation();
+  return (
+    <div
+      className={`xp-titlebar ${active ? "" : "xp-titlebar--inactive"}`}
+      onPointerDown={onPointerDown}
+      onDoubleClick={onDoubleClick}
+      style={{ cursor: "default", touchAction: "none" }}
+    >
+      {icon && <span className="shrink-0">{icon}</span>}
+      <span className="xp-titlebar__title">{title}</span>
+      <span className="xp-titlebar__btns" onPointerDown={stop}>
+        <button
+          type="button"
+          className="xp-titlebar__btn"
+          title="Minimize"
+          onClick={onMinimize}
+        >
+          <Minus size={11} strokeWidth={3} />
+        </button>
+        <button
+          type="button"
+          className="xp-titlebar__btn"
+          title={isMaximized ? "Restore" : "Maximize"}
+          onClick={onMaximize}
+        >
+          {isMaximized ? <Copy size={10} strokeWidth={3} /> : <Square size={9} strokeWidth={3} />}
+        </button>
+        <button
+          type="button"
+          className="xp-titlebar__btn xp-titlebar__btn--close"
+          title="Close"
+          onClick={onClose}
+        >
+          <X size={12} strokeWidth={3} />
+        </button>
+      </span>
+    </div>
+  );
+}
 
 /* ---------------- Window + title bar ---------------- */
 

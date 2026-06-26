@@ -379,3 +379,143 @@ body {
 .xp-scroll::-webkit-scrollbar-track {
   background: #e3e0d4;
 }
+
+/* ============================================================
+   WINDOW MANAGER — real OS windowing
+   ============================================================ */
+
+/* Inactive title bar (grayed when not focused) */
+.xp-titlebar--inactive {
+  background: linear-gradient(180deg, #7a96df 0%, #3a6fc4 100%);
+}
+.xp-titlebar__btn {
+  cursor: default;
+}
+
+/* The draggable/resizable window frame */
+.xp-os-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  background: var(--xp-face);
+  border: 3px solid #0a246a;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+  will-change: transform, opacity;
+}
+.xp-os-window--active {
+  border-color: #0a246a;
+}
+.xp-os-window--inactive {
+  border-color: #7a96df;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.3);
+}
+.xp-os-window__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: var(--xp-face);
+}
+
+/* Resize handles (cursor changes on edge/corner hover) */
+.xp-resize {
+  position: absolute;
+  z-index: 6;
+}
+.xp-resize--n { top: -3px; left: 10px; right: 10px; height: 7px; cursor: ns-resize; }
+.xp-resize--s { bottom: -3px; left: 10px; right: 10px; height: 7px; cursor: ns-resize; }
+.xp-resize--e { top: 10px; bottom: 10px; right: -3px; width: 7px; cursor: ew-resize; }
+.xp-resize--w { top: 10px; bottom: 10px; left: -3px; width: 7px; cursor: ew-resize; }
+.xp-resize--ne { top: -4px; right: -4px; width: 16px; height: 16px; cursor: nesw-resize; }
+.xp-resize--nw { top: -4px; left: -4px; width: 16px; height: 16px; cursor: nwse-resize; }
+.xp-resize--se { bottom: -4px; right: -4px; width: 16px; height: 16px; cursor: nwse-resize; }
+.xp-resize--sw { bottom: -4px; left: -4px; width: 16px; height: 16px; cursor: nesw-resize; }
+
+/* Desktop icons */
+.xp-desktop-icon {
+  position: absolute;
+  width: 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  text-align: center;
+  cursor: default;
+  touch-action: none;
+}
+.xp-desktop-icon:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.xp-desktop-icon--selected {
+  background: rgba(49, 106, 197, 0.45);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+.xp-desktop-icon__glyph {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(180deg, #3a6fc4 0%, #0a246a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+.xp-desktop-icon__label {
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.2;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.85);
+  word-break: break-word;
+}
+
+/* Right-click context menu */
+.xp-context-menu {
+  position: absolute;
+  z-index: 60;
+  min-width: 150px;
+  background: #fff;
+  border: 1px solid #0831a5;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4);
+  padding: 2px;
+}
+.xp-context-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 5px 18px;
+  font-size: 12px;
+  color: #16306b;
+  background: transparent;
+  cursor: default;
+}
+.xp-context-menu__item:hover {
+  background: linear-gradient(180deg, #316ac5 0%, #1b4f9b 100%);
+  color: #fff;
+}
+
+/* Light toolbar (client picker) inside windowed apps */
+.xp-app-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #d9e2f3;
+  border: 1px solid #aebfdf;
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+.xp-app-select {
+  background: #fff;
+  border: 1px solid #7f9db9;
+  box-shadow: inset 1px 1px 1px rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+  padding: 3px 6px;
+  font-size: 12px;
+  color: #222;
+}
