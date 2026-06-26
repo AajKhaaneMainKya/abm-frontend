@@ -9,6 +9,9 @@ export const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://abm-api.railway.app";
 
+/** Host (no protocol) — used to build the browser-agent WebSocket URL. */
+export const API_HOST = API_URL.replace(/^https?:\/\//, "");
+
 export const api = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
@@ -103,12 +106,17 @@ export interface QueueSequence {
   body: string | null;
   angle_used: string | null;
   critic_score: number | null;
+  critic_feedback: string | null;
   confidence_score_at_send: number | null;
+  linkedin_message: string | null;
+  status: string;
+  account_id: string | null;
   created_at: string;
   company: string | null;
   dm_name: string | null;
   dm_title: string | null;
   dm_email: string | null;
+  dm_linkedin: string | null;
   personalization_hooks?: string[] | null;
 }
 
@@ -321,5 +329,99 @@ export async function getWeeklyBrief(
   clientId: string,
 ): Promise<{ latest: WeeklyBrief | null; history: WeeklyBrief[] }> {
   const { data } = await api.get(`/api/clients/${clientId}/weekly-brief`);
+  return data;
+}
+
+/* ------------------------------------------------------------------ */
+/* Campaign controls (Phase 2 UX)                                     */
+/* ------------------------------------------------------------------ */
+
+export interface UpdateClientPayload {
+  name?: string;
+  icp?: ICP;
+  positioning?: Positioning;
+  sender_name?: string;
+  sender_email?: string;
+  sender_domain?: string;
+  campaign_goal?: string;
+  confidence_threshold?: number;
+  daily_send_cap?: number;
+}
+
+export interface ManualAccountPayload {
+  company: string;
+  domain: string;
+  dm_name: string;
+  dm_title?: string;
+  dm_email: string;
+  dm_linkedin?: string;
+  industry?: string;
+  size_estimate?: number;
+}
+
+/** Throws an ApiValidationError carrying `errors` when the API returns 422. */
+export class ApiValidationError extends Error {
+  errors: string[];
+  constructor(errors: string[]) {
+    super(errors.join("; "));
+    this.name = "ApiValidationError";
+    this.errors = errors;
+  }
+}
+
+function unwrapErrors(e: unknown): never {
+  const resp = (e as { response?: { status?: number; data?: { errors?: string[] } } }).response;
+  if (resp?.status === 422 && resp.data?.errors) {
+    throw new ApiValidationError(resp.data.errors);
+  }
+  throw e;
+}
+
+export async function updateClient(
+  clientId: string,
+  payload: UpdateClientPayload,
+): Promise<Client> {
+  try {
+    const { data } = await api.patch<Client>(`/api/clients/${clientId}`, payload);
+    return data;
+  } catch (e) {
+    return unwrapErrors(e);
+  }
+}
+
+export async function triggerOrchestrator(clientId: string) {
+  const { data } = await api.post(`/api/clients/${clientId}/trigger-orchestrator`);
+  return data;
+}
+
+export async function pauseClient(clientId: string) {
+  const { data } = await api.post(`/api/clients/${clientId}/pause`);
+  return data;
+}
+
+export async function resumeClient(clientId: string) {
+  const { data } = await api.post(`/api/clients/${clientId}/resume`);
+  return data;
+}
+
+export async function addToDnc(clientId: string, accountId: string) {
+  const { data } = await api.post(`/api/clients/${clientId}/accounts/${accountId}/dnc`);
+  return data;
+}
+
+export async function addManualAccount(
+  clientId: string,
+  payload: ManualAccountPayload,
+) {
+  try {
+    const { data } = await api.post(`/api/clients/${clientId}/accounts/manual`, payload);
+    return data;
+  } catch (e) {
+    return unwrapErrors(e);
+  }
+}
+
+export async function redraftItem(clientId: string, seqId: string) {
+  const { data } = await api.post(`/api/clients/${clientId}/queue/${seqId}/redraft`);
   return data;
 }

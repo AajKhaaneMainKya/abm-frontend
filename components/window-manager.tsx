@@ -25,6 +25,9 @@ import {
   UserPlus,
   Users,
   Building2,
+  FileText,
+  Globe,
+  SquarePen,
   type LucideIcon,
 } from "lucide-react";
 import { XpTitleBar } from "@/components/xp";
@@ -34,6 +37,9 @@ import DecisionsApp from "@/components/apps/decisions-app";
 import NewClientApp from "@/components/apps/new-client-app";
 import HandoffsApp from "@/components/apps/handoffs-app";
 import ClientDetailApp from "@/components/apps/client-detail-app";
+import ClientEditApp from "@/components/apps/client-edit-app";
+import WeeklyBriefApp from "@/components/apps/weekly-brief-app";
+import BrowserAgentApp from "@/components/apps/browser-agent-app";
 
 export type AppId =
   | "dashboard"
@@ -41,7 +47,10 @@ export type AppId =
   | "decisions"
   | "new-client"
   | "handoffs"
-  | "client";
+  | "client"
+  | "client-edit"
+  | "weekly-brief"
+  | "browser-agent";
 
 export interface WinProps {
   clientId?: string;
@@ -62,11 +71,14 @@ export const APPS: Record<AppId, AppDef> = {
   decisions: { title: "Orchestrator Log", icon: ScrollText, size: { width: 900, height: 600 }, singleton: true, render: () => <DecisionsApp /> },
   "new-client": { title: "New Client Setup", icon: UserPlus, size: { width: 680, height: 640 }, singleton: true, render: () => <NewClientApp /> },
   handoffs: { title: "Handoffs", icon: Users, size: { width: 880, height: 600 }, singleton: true, render: () => <HandoffsApp /> },
+  "weekly-brief": { title: "Weekly Brief", icon: FileText, size: { width: 840, height: 660 }, singleton: true, render: () => <WeeklyBriefApp /> },
+  "browser-agent": { title: "Browser Agent", icon: Globe, size: { width: 1000, height: 680 }, singleton: true, render: () => <BrowserAgentApp /> },
   client: { title: "Client", icon: Building2, size: { width: 960, height: 680 }, singleton: false, render: (p) => <ClientDetailApp clientId={p.clientId!} /> },
+  "client-edit": { title: "Edit Client", icon: SquarePen, size: { width: 720, height: 680 }, singleton: false, render: (p) => <ClientEditApp clientId={p.clientId!} /> },
 };
 
 /** Apps shown as desktop icons + sidebar items (order matters). */
-export const DESKTOP_APPS: AppId[] = ["dashboard", "queue", "decisions", "new-client", "handoffs"];
+export const DESKTOP_APPS: AppId[] = ["dashboard", "queue", "decisions", "weekly-brief", "new-client", "handoffs", "browser-agent"];
 
 export interface WinState {
   id: string;
