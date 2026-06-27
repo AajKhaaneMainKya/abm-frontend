@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Monitor, Check, SkipForward, Send, Building2 } from "lucide-react";
-import { API_HOST } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { Monitor, Check, SkipForward, Send, Building2, ChevronDown } from "lucide-react";
+import { useClientList } from "@/components/client-select";
+import { getAccounts, startBrowse, browserWsUrl } from "@/lib/api";
 import { XpButton, XpBadge } from "@/components/xp";
 
 type Status = "idle" | "connecting" | "searching" | "found" | "failed" | "disconnected";
@@ -33,6 +35,19 @@ export default function BrowserAgentApp() {
   const wsRef = useRef<WebSocket | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
+  // Pick the account to enrich. Component takes no props (rendered bare by the
+  // route page and the desktop window-manager), so it self-selects a client.
+  const { data: clients } = useClientList();
+  const [pickedClient, setPickedClient] = useState<string>("");
+  const activeClientId = pickedClient || clients?.[0]?.id || "";
+  const { data: accounts } = useQuery({
+    queryKey: ["accounts", activeClientId, "browseable"],
+    queryFn: () => getAccounts(activeClientId, ["DISCOVERED", "ENRICHED"]),
+    enabled: !!activeClientId,
+  });
+  const [accountId, setAccountId] = useState<string>("");
+  const [starting, setStarting] = useState(false);
+
   const addLog = (t: string) => setLog((p) => [...p, t]);
 
   useEffect(() => {
@@ -45,7 +60,7 @@ export default function BrowserAgentApp() {
     addLog("Connecting to browser session…");
     let ws: WebSocket;
     try {
-      ws = new WebSocket(`wss://${API_HOST}/ws/browser/${sessionId}`);
+      ws = new WebSocket(browserWsUrl(sessionId));
     } catch {
       setStatus("disconnected");
       addLog("Could not open a WebSocket connection.");
@@ -57,7 +72,10 @@ export default function BrowserAgentApp() {
     ws.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
-        if (data.type === "screenshot") setScreenshot(data.image);
+        if (data.type === "screenshot") {
+          setScreenshot(data.image);
+          if (data.action) addLog(data.action);
+        }
         if (data.type === "action") addLog(data.text);
         if (data.type === "found") { setFoundContact(data.contact); setStatus("found"); addLog("Decision maker found."); }
         if (data.type === "failed") { setStatus("failed"); addLog("Agent could not find a decision maker."); }
@@ -69,15 +87,24 @@ export default function BrowserAgentApp() {
     return () => ws.close();
   }, [sessionId]);
 
-  const start = () => {
+  const start = async () => {
+    if (!activeClientId || !accountId) return;
     setScreenshot(null);
     setFoundContact(null);
     setLog([]);
-    const id =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `sess-${Date.now()}`;
-    setSessionId(id);
+    setStarting(true);
+    try {
+      // Ask the backend to launch the run; it returns the real session_id the
+      // Browser Agent publishes screenshots under.
+      const { session_id } = await startBrowse(activeClientId, accountId);
+      addLog("Browser enrichment requested — launching agent…");
+      setSessionId(session_id);
+    } catch {
+      setStatus("failed");
+      addLog("Could not start the browser session (API error).");
+    } finally {
+      setStarting(false);
+    }
   };
 
   const sendInstruction = () => {
@@ -100,6 +127,8 @@ export default function BrowserAgentApp() {
   };
 
   const meta = STATUS_META[status];
+  const running = status === "connecting" || status === "searching";
+  const accountList = accounts ?? [];
 
   return (
     <div className="grid h-full grid-cols-1 gap-3 p-4 lg:grid-cols-[3fr_2fr]">
@@ -107,8 +136,46 @@ export default function BrowserAgentApp() {
       <div className="xp-window !rounded-md">
         <div className="flex items-center gap-2 bg-[#d4d0c8] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a246a]">
           <Monitor size={13} /> Live Browser
-          <XpButton className="ml-auto !py-0.5 !text-[11px]" onClick={start}>
-            {status === "idle" || status === "disconnected" ? "Start session" : "Restart"}
+        </div>
+        {/* Account selector — pick a DISCOVERED / ENRICHED account to enrich. */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#aca899] bg-[#ece9d8] px-3 py-2">
+          {clients && clients.length > 1 && (
+            <Picker value={activeClientId} onChange={setPickedClient} disabled={running}>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Picker>
+          )}
+          <Picker
+            value={accountId}
+            onChange={setAccountId}
+            disabled={running || accountList.length === 0}
+            minWidth={220}
+          >
+            <option value="">
+              {accountList.length === 0
+                ? "No DISCOVERED / ENRICHED accounts"
+                : "Select an account…"}
+            </option>
+            {accountList.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.company} — {a.state}
+                {a.domain ? ` (${a.domain})` : ""}
+              </option>
+            ))}
+          </Picker>
+          <XpButton
+            className="!py-0.5 !text-[11px]"
+            onClick={start}
+            disabled={!accountId || running || starting}
+          >
+            {starting
+              ? "Starting…"
+              : status === "idle" || status === "disconnected"
+                ? "Start session"
+                : "Restart"}
           </XpButton>
         </div>
         <div className="grid min-h-[320px] place-items-center bg-[#1d1d1d] p-2">
@@ -188,5 +255,38 @@ export default function BrowserAgentApp() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** XP-style sunken <select> (matches ClientSelect) for the toolbar pickers. */
+function Picker({
+  value,
+  onChange,
+  disabled,
+  minWidth,
+  children,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  minWidth?: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="relative inline-block">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        style={minWidth ? { minWidth } : undefined}
+        className="xp-inset appearance-none rounded-sm py-1 pl-2 pr-7 text-[12px] text-neutral-800 disabled:opacity-60"
+      >
+        {children}
+      </select>
+      <ChevronDown
+        size={14}
+        className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-neutral-600"
+      />
+    </span>
   );
 }

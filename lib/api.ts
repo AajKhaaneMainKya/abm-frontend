@@ -425,3 +425,57 @@ export async function redraftItem(clientId: string, seqId: string) {
   const { data } = await api.post(`/api/clients/${clientId}/queue/${seqId}/redraft`);
   return data;
 }
+
+/* ------------------------------------------------------------------ */
+/* Accounts + Browser Agent (live enrichment)                         */
+/* ------------------------------------------------------------------ */
+
+export interface Account {
+  id: string;
+  company: string;
+  domain: string | null;
+  state: string;
+  enrichment_layer: number | null;
+  dm_name: string | null;
+  dm_title: string | null;
+  dm_linkedin: string | null;
+  intent_score: number | null;
+}
+
+/** List accounts, optionally filtered to specific states (e.g. DISCOVERED,ENRICHED). */
+export async function getAccounts(
+  clientId: string,
+  states?: string[],
+): Promise<Account[]> {
+  const params =
+    states && states.length ? { state: states.join(",") } : undefined;
+  const { data } = await api.get<{ accounts: Account[] }>(
+    `/api/clients/${clientId}/accounts`,
+    { params },
+  );
+  return data.accounts ?? [];
+}
+
+export interface BrowseSession {
+  session_id: string;
+  account_id: string;
+  company: string;
+  status: string;
+}
+
+/** Start a live browser-enrichment run; returns the session_id to open the WS. */
+export async function startBrowse(
+  clientId: string,
+  accountId: string,
+): Promise<BrowseSession> {
+  const { data } = await api.post<BrowseSession>(
+    `/api/clients/${clientId}/accounts/${accountId}/browse`,
+  );
+  return data;
+}
+
+/** Build the screenshot WebSocket URL (ws:// or wss:// to match the API). */
+export function browserWsUrl(sessionId: string): string {
+  const proto = API_URL.startsWith("https") ? "wss" : "ws";
+  return `${proto}://${API_HOST}/ws/browser/${sessionId}`;
+}
