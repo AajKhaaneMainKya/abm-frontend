@@ -193,9 +193,18 @@ export async function getClient(id: string): Promise<Client> {
   return data;
 }
 
-export async function createClient(payload: CreateClientPayload): Promise<Client> {
-  const { data } = await api.post<Client>("/api/clients", payload);
-  return data;
+export async function createClient(
+  payload: CreateClientPayload,
+): Promise<Client & { warnings?: string[] }> {
+  try {
+    const { data } = await api.post<Client & { warnings?: string[] }>(
+      "/api/clients",
+      payload,
+    );
+    return data;
+  } catch (e) {
+    return unwrapErrors(e);
+  }
 }
 
 /* ------------------------------------------------------------------ */

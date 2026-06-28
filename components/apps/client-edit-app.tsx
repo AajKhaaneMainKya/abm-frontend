@@ -15,8 +15,12 @@ import { TagInput } from "@/components/tag-input";
 import {
   cleanDomain,
   validateDomain,
-  validateSenderEmail,
   validateGeography,
+  validateSenderName,
+  senderEmailIssues,
+  validateVoiceAnchor,
+  dailySendCapIssue,
+  thresholdLabel,
 } from "@/lib/validators";
 
 const STEPS = ["Basics", "ICP", "Positioning", "Settings"] as const;
@@ -27,8 +31,6 @@ const TITLE_SUGGESTIONS = [
   "Growth Lead", "Demand Generation Manager", "Marketing Manager",
 ];
 
-const COMPANY_NAME_HINTS = ["inc", "ltd", "pvt", "team", "support", "sales", "marketing", "noreply", "hello", "info"];
-
 const inputCls =
   "w-full xp-inset rounded-sm px-2 py-1.5 text-[13px] text-neutral-800 outline-none focus:ring-1 focus:ring-[#316ac5]";
 
@@ -36,12 +38,14 @@ function Field({
   label,
   hint,
   error,
+  warn,
   changed,
   children,
 }: {
   label: string;
   hint?: string;
   error?: string | null;
+  warn?: string | null;
   changed?: boolean;
   children: React.ReactNode;
 }) {
@@ -53,7 +57,9 @@ function Field({
       </span>
       {children}
       {error ? (
-        <span className="mt-0.5 block text-[11px] text-[#a02020]">{error}</span>
+        <span className="mt-0.5 block text-[11px] font-semibold text-[#a02020]">{error}</span>
+      ) : warn ? (
+        <span className="mt-0.5 block text-[11px] text-[#9a7b10]">⚠ {warn}</span>
       ) : hint ? (
         <span className="mt-0.5 block text-[11px] text-neutral-400">{hint}</span>
       ) : null}
@@ -131,18 +137,27 @@ export default function ClientEditApp({
     setDailyCap(client.daily_send_cap ?? 10);
   }, [client]);
 
-  // live client-side field errors
-  const domainErr = senderDomain ? validateDomain(senderDomain)[0] ?? null : null;
-  const emailErr =
-    senderEmail ? validateSenderEmail(senderEmail, cleanDomain(senderDomain))[0] ?? null : null;
-  const senderNameWarn =
-    senderName && COMPANY_NAME_HINTS.some((s) => senderName.toLowerCase().includes(s))
-      ? "Looks like a company — use a person's name"
+  // live client-side field errors (red = blocks save) and warnings (yellow = allows)
+  const domainErr = senderDomain ? validateDomain(senderDomain)[0] ?? null : "Required";
+  const snIssue = validateSenderName(senderName);
+  const emailIssue = senderEmail.trim()
+    ? senderEmailIssues(senderEmail, senderDomain)
+    : { error: "Required" as string | null, warn: null as string | null };
+  const voiceIssue = validateVoiceAnchor(voiceAnchor);
+  const capIssue = dailySendCapIssue(dailyCap);
+  const categoryErr = !category.trim()
+    ? "Required"
+    : category.length < 10
+      ? "Too vague — be specific (10+ chars)"
       : null;
-  const categoryErr = category && category.length < 10 ? "Too vague — be specific (10+ chars)" : null;
-  const voiceErr = voiceAnchor.length > 200 ? "Max 200 chars" : null;
   const sizeErr =
     Number(sizeMin) >= Number(sizeMax) ? "Min must be less than max" : null;
+
+  const errorCount = [
+    name.trim() ? null : "name",
+    snIssue.error, emailIssue.error, domainErr, voiceIssue.error, capIssue.error,
+    categoryErr, sizeErr,
+  ].filter(Boolean).length;
 
   const payload: UpdateClientPayload = useMemo(
     () => ({
@@ -207,8 +222,6 @@ export default function ClientEditApp({
   };
 
   const last = step === STEPS.length - 1;
-  const thresholdLabel =
-    threshold <= 35 ? "Almost all auto" : threshold >= 90 ? "Manual review all" : "Balanced ✓";
 
   return (
     <div className="p-4">
@@ -229,10 +242,10 @@ export default function ClientEditApp({
             <Field label="Client name *" changed={ch.name}>
               <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
             </Field>
-            <Field label="Sender name" error={senderNameWarn} changed={ch.senderName}>
+            <Field label="Your name (shown in emails)" error={snIssue.error} warn={snIssue.warn} changed={ch.senderName}>
               <input className={inputCls} value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="A real person — e.g. Akshar" />
             </Field>
-            <Field label="Sender email" error={emailErr} changed={ch.senderEmail}>
+            <Field label="Sender email" error={emailIssue.error} warn={emailIssue.warn} changed={ch.senderEmail}>
               <input className={inputCls} value={senderEmail} onChange={(e) => setSenderEmail(e.target.value)} placeholder="founder@company.com" />
             </Field>
             <Field
@@ -307,15 +320,15 @@ export default function ClientEditApp({
             <Field label="Competitors" hint="optional">
               <TagInput value={competitors} onChange={setCompetitors} placeholder="HubSpot, Outreach…" />
             </Field>
-            <Field label="Voice anchor" error={voiceErr} hint={`${voiceAnchor.length}/200`} changed={ch.voice}>
-              <textarea className={`${inputCls} h-20 resize-none`} value={voiceAnchor} onChange={(e) => setVoiceAnchor(e.target.value)} maxLength={240} />
+            <Field label="Writing voice" error={voiceIssue.error} hint={`The AI matches this style · ${voiceAnchor.length}/200`} changed={ch.voice}>
+              <textarea className={`${inputCls} h-20 resize-none`} value={voiceAnchor} onChange={(e) => setVoiceAnchor(e.target.value)} maxLength={200} />
             </Field>
           </>
         )}
 
         {step === 3 && (
           <>
-            <Field label={`Confidence threshold: ${threshold} — ${thresholdLabel}`} changed={ch.threshold}>
+            <Field label={`Confidence threshold: ${threshold} — ${thresholdLabel(threshold)}`} changed={ch.threshold}>
               <input type="range" min={30} max={95} value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="w-full accent-[#1b5dbf]" />
               <div className="flex justify-between text-[10px] text-neutral-400">
                 <span>30 · almost all auto</span>
@@ -325,7 +338,8 @@ export default function ClientEditApp({
             </Field>
             <Field
               label="Daily send cap"
-              error={dailyCap > 30 ? `${dailyCap} is high for a new domain. Start at 10–20.` : null}
+              error={capIssue.error}
+              warn={capIssue.warn}
               changed={ch.dailyCap}
             >
               <input className={inputCls} type="number" value={dailyCap} onChange={(e) => setDailyCap(Number(e.target.value))} />
@@ -380,9 +394,14 @@ export default function ClientEditApp({
             <span className="inline-flex items-center gap-1">Next <ChevronRight size={14} /></span>
           </XpButton>
         ) : (
-          <XpButton variant="green" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+          <XpButton variant="green" disabled={mutation.isPending || errorCount > 0} onClick={() => mutation.mutate()}>
             <span className="inline-flex items-center gap-1">
-              <Check size={14} /> {mutation.isPending ? "Saving…" : "Save Changes"}
+              <Check size={14} />
+              {mutation.isPending
+                ? "Saving…"
+                : errorCount > 0
+                  ? `Fix ${errorCount} error${errorCount > 1 ? "s" : ""} to continue`
+                  : "Save Changes"}
             </span>
           </XpButton>
         )}
