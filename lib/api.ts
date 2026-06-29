@@ -227,6 +227,32 @@ export async function getMetrics(clientId: string): Promise<Metrics> {
 }
 
 /* ------------------------------------------------------------------ */
+/* Cost monitor (Phase H)                                             */
+/* ------------------------------------------------------------------ */
+
+export interface AgentCost {
+  agent: string;
+  cost_usd: number;
+  today_usd: number;
+  calls: number;
+  input_tokens: number;
+  output_tokens: number;
+}
+
+export interface Costs {
+  by_agent: AgentCost[];
+  all_time_usd: number;
+  today_usd: number;
+  email_count: number;
+  per_email_avg_usd: number;
+}
+
+export async function getCosts(): Promise<Costs> {
+  const { data } = await api.get<Costs>("/api/costs");
+  return data;
+}
+
+/* ------------------------------------------------------------------ */
 /* Decisions                                                          */
 /* ------------------------------------------------------------------ */
 

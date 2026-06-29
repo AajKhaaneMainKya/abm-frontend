@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useActiveClient } from "@/components/active-client";
 import { useQuery } from "@tanstack/react-query";
 import { getDecisions } from "@/lib/api";
 import { useClientList } from "@/components/client-select";
@@ -10,11 +10,8 @@ import { AppToolbar } from "@/components/apps/app-toolbar";
 
 export default function DecisionsApp() {
   const { data: clients, isLoading, error } = useClientList();
-  const [clientId, setClientId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!clientId && clients && clients.length > 0) setClientId(clients[0].id);
-  }, [clients, clientId]);
+  const { activeClientId, setActiveClientId } = useActiveClient();
+  const clientId = activeClientId ?? clients?.[0]?.id ?? null;
 
   const decisions = useQuery({
     queryKey: ["decisions", clientId],
@@ -30,7 +27,7 @@ export default function DecisionsApp() {
 
   return (
     <div className="space-y-3 p-4">
-      <AppToolbar clients={clients} value={clientId} onChange={setClientId} />
+      <AppToolbar clients={clients} value={clientId} onChange={setActiveClientId} />
       {decisions.isLoading ? (
         <Loading label="Loading decisions…" />
       ) : decisions.error ? (

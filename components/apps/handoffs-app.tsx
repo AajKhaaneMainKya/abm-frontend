@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useActiveClient } from "@/components/active-client";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Mail, Flame } from "lucide-react";
 import { getHandoffs, type Handoff } from "@/lib/api";
@@ -57,11 +57,8 @@ function HandoffCard({ h }: { h: Handoff }) {
 
 export default function HandoffsApp() {
   const { data: clients, isLoading, error } = useClientList();
-  const [clientId, setClientId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!clientId && clients && clients.length > 0) setClientId(clients[0].id);
-  }, [clients, clientId]);
+  const { activeClientId, setActiveClientId } = useActiveClient();
+  const clientId = activeClientId ?? clients?.[0]?.id ?? null;
 
   const handoffs = useQuery({
     queryKey: ["handoffs", clientId],
@@ -79,7 +76,7 @@ export default function HandoffsApp() {
 
   return (
     <div className="space-y-3 p-4">
-      <AppToolbar clients={clients} value={clientId} onChange={setClientId} />
+      <AppToolbar clients={clients} value={clientId} onChange={setActiveClientId} />
       {handoffs.isLoading ? (
         <Loading label="Loading handoffs…" />
       ) : handoffs.error ? (

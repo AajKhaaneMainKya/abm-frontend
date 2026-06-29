@@ -14,6 +14,7 @@ import {
   APPS,
   DESKTOP_APPS,
 } from "@/components/window-manager";
+import { QuickActionsBar, TriggerFab } from "@/components/quick-actions";
 
 function Clock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -35,6 +36,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen flex-col">
+      {/* Always-visible Quick Actions bar — client picker + Trigger + Refresh */}
+      <QuickActionsBar />
+
       <div className="relative flex min-h-0 flex-1">
         {/* Sidebar (Start-menu style) — items open windows */}
         <aside className="xp-sidebar z-20 hidden flex-col md:flex">
@@ -103,6 +107,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <Clock />
       </footer>
+
+      {/* Floating trigger — always one click away, above the taskbar */}
+      <TriggerFab />
     </div>
   );
 }

@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Send, MessageSquare, Clock4, UserPlus } from "lucide-react";
 import { getCampaign, getPipeline, getDecisions } from "@/lib/api";
 import { useClientList } from "@/components/client-select";
+import { useActiveClient } from "@/components/active-client";
 import { StatCard, XpButton, Loading, ErrorNote } from "@/components/xp";
 import { PipelineBars } from "@/components/pipeline";
 import { DecisionsTable } from "@/components/decisions";
 import { AppToolbar } from "@/components/apps/app-toolbar";
+import { CostMonitor } from "@/components/cost-monitor";
 import { useWindowManager } from "@/components/window-manager";
 
 const REFRESH = 30_000;
@@ -16,11 +17,8 @@ const REFRESH = 30_000;
 export default function DashboardApp() {
   const wm = useWindowManager();
   const { data: clients, isLoading, error } = useClientList();
-  const [clientId, setClientId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!clientId && clients && clients.length > 0) setClientId(clients[0].id);
-  }, [clients, clientId]);
+  const { activeClientId, setActiveClientId } = useActiveClient();
+  const clientId = activeClientId ?? clients?.[0]?.id ?? null;
 
   const campaign = useQuery({ queryKey: ["campaign", clientId], queryFn: () => getCampaign(clientId!), enabled: !!clientId, refetchInterval: REFRESH });
   const pipeline = useQuery({ queryKey: ["pipeline", clientId], queryFn: () => getPipeline(clientId!), enabled: !!clientId, refetchInterval: REFRESH });
@@ -44,34 +42,17 @@ export default function DashboardApp() {
 
   return (
     <div className="space-y-5 p-4">
-      <AppToolbar clients={clients} value={clientId} onChange={setClientId} />
+      <AppToolbar clients={clients} value={clientId} onChange={setActiveClientId} />
 
-      {/*
-        TODO: Add real-time cost monitor panel
-        Design (XP style, chunky progress bars):
-        ┌─────────────────────────────────┐
-        │ 💰 Cost Monitor                 │
-        ├─────────────────────────────────┤
-        │ Orchestrator    $0.0089  ████░  │
-        │ Personalizer    $0.0156  ██████ │
-        │ Scout           $0.0023  █░░░░  │
-        │ Critic          $0.0041  ██░░░  │
-        │ Reasoning       $0.0008  ░░░░░  │
-        ├─────────────────────────────────┤
-        │ Session total:  $0.0351         │
-        │ Per email avg:  $0.0043         │
-        │ All-time:       $0.1823         │
-        └─────────────────────────────────┘
-        Backend: GET /api/costs endpoint (to be built)
-        DB: cost_log table (to be built — see Phase H in build prompt)
-        Auto-refresh: every 60 seconds
-        Also show cost per account in pipeline view inline
-      */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Accounts discovered" value={c?.total_accounts ?? "—"} accent="#1a73e8" icon={<Users size={14} />} />
         <StatCard label="Emails sent" value={c?.emails_sent ?? "—"} accent="#1b5dbf" icon={<Send size={14} />} />
         <StatCard label="Replies" value={c?.replies ?? "—"} accent="#008080" icon={<MessageSquare size={14} />} />
         <StatCard label="Pending review" value={c?.pending_sequences ?? "—"} accent="#c8a020" icon={<Clock4 size={14} />} />
+      </div>
+
+      <div className="lg:max-w-xl">
+        <CostMonitor />
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

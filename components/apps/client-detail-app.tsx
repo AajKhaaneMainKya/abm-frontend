@@ -132,7 +132,7 @@ function ControlsBar({ client, clientId }: { client: Client; clientId: string })
   });
 
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-[#d8d4c8] pb-3">
+    <div className="sticky top-0 z-10 -mx-3 mb-3 flex flex-wrap items-center gap-2 border-b border-[#aca899] bg-[#ece9d8] px-3 py-2 shadow-sm">
       <XpButton onClick={() => triggerM.mutate()} disabled={triggerM.isPending}>
         <span className="inline-flex items-center gap-1"><Play size={13} /> {triggerM.isPending ? "Triggering…" : "Trigger Now"}</span>
       </XpButton>

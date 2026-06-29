@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useActiveClient } from "@/components/active-client";
 import { TrendingUp, TrendingDown, ThumbsUp, ThumbsDown, FileText } from "lucide-react";
 import { getWeeklyBrief, type WeeklyBrief } from "@/lib/api";
 import { useClientList } from "@/components/client-select";
@@ -111,12 +112,9 @@ function BriefBody({ b }: { b: WeeklyBrief }) {
 
 export default function WeeklyBriefApp() {
   const { data: clients, isLoading, error } = useClientList();
-  const [clientId, setClientId] = useState<string | null>(null);
+  const { activeClientId, setActiveClientId } = useActiveClient();
+  const clientId = activeClientId ?? clients?.[0]?.id ?? null;
   const [weekId, setWeekId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!clientId && clients && clients.length > 0) setClientId(clients[0].id);
-  }, [clients, clientId]);
 
   const brief = useQuery({
     queryKey: ["weekly-brief", clientId],
@@ -140,7 +138,7 @@ export default function WeeklyBriefApp() {
       <AppToolbar
         clients={clients}
         value={clientId}
-        onChange={(id) => { setClientId(id); setWeekId(null); }}
+        onChange={(id) => { setActiveClientId(id); setWeekId(null); }}
         right={
           history.length > 0 && (
             <select className="xp-app-select" value={weekId ?? selected?.id ?? ""} onChange={(e) => setWeekId(e.target.value)}>
