@@ -46,6 +46,27 @@ export default function DashboardApp() {
     <div className="space-y-5 p-4">
       <AppToolbar clients={clients} value={clientId} onChange={setClientId} />
 
+      {/*
+        TODO: Add real-time cost monitor panel
+        Design (XP style, chunky progress bars):
+        ┌─────────────────────────────────┐
+        │ 💰 Cost Monitor                 │
+        ├─────────────────────────────────┤
+        │ Orchestrator    $0.0089  ████░  │
+        │ Personalizer    $0.0156  ██████ │
+        │ Scout           $0.0023  █░░░░  │
+        │ Critic          $0.0041  ██░░░  │
+        │ Reasoning       $0.0008  ░░░░░  │
+        ├─────────────────────────────────┤
+        │ Session total:  $0.0351         │
+        │ Per email avg:  $0.0043         │
+        │ All-time:       $0.1823         │
+        └─────────────────────────────────┘
+        Backend: GET /api/costs endpoint (to be built)
+        DB: cost_log table (to be built — see Phase H in build prompt)
+        Auto-refresh: every 60 seconds
+        Also show cost per account in pipeline view inline
+      */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Accounts discovered" value={c?.total_accounts ?? "—"} accent="#1a73e8" icon={<Users size={14} />} />
         <StatCard label="Emails sent" value={c?.emails_sent ?? "—"} accent="#1b5dbf" icon={<Send size={14} />} />

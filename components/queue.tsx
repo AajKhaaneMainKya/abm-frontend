@@ -95,6 +95,16 @@ function EmailCard({ s, clientId }: { s: QueueSequence; clientId: string }) {
               <div className="text-[11px] uppercase tracking-wide text-neutral-400">Subject</div>
               <div className="text-[13px] font-semibold text-neutral-800">{s.subject ?? "—"}</div>
             </div>
+            {/*
+              TODO: Replace plain textarea with TipTap rich text editor
+              TipTap gives: bold, italic, inline formatting, word count
+              Install: npm install @tiptap/react @tiptap/pm @tiptap/starter-kit
+              Pattern to follow: Akshar's TipTap integration in claude-writing-agent
+              Gate: show TipTap only for email body (not LinkedIn message —
+                LinkedIn is plain text only, 300 char limit)
+              On save: strip HTML tags before sending to API (emails are plain text)
+              Akshar repo reference: /vercel/app/components/TipTapEditor.tsx
+            */}
             <div className="xp-inset max-h-28 overflow-y-auto whitespace-pre-wrap px-3 py-2 font-mono text-[12px] leading-relaxed text-neutral-700">
               {s.body ?? "—"}
             </div>
