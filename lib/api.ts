@@ -247,8 +247,10 @@ export interface Costs {
   per_email_avg_usd: number;
 }
 
-export async function getCosts(): Promise<Costs> {
-  const { data } = await api.get<Costs>("/api/costs");
+export async function getCosts(clientId?: string | null): Promise<Costs> {
+  const { data } = await api.get<Costs>("/api/costs", {
+    params: clientId ? { client_id: clientId } : undefined,
+  });
   return data;
 }
 

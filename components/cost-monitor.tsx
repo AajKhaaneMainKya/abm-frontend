@@ -2,6 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getCosts } from "@/lib/api";
+import { useClientList } from "@/components/client-select";
+import { useActiveClient } from "@/components/active-client";
 
 function Bar({ pct }: { pct: number }) {
   const filled = Math.max(0, Math.min(10, Math.round((pct / 100) * 10)));
@@ -21,12 +23,17 @@ function fmt(n: number | undefined): string {
   return `$${(n ?? 0).toFixed(4)}`;
 }
 
-/** Real-time per-agent LLM cost panel. Backed by GET /api/costs (Phase H). */
+/** Per-client real-time LLM cost panel. Backed by GET /api/costs?client_id= (Phase H). */
 export function CostMonitor() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["costs"],
-    queryFn: getCosts,
-    refetchInterval: 60_000,
+  const { data: clients } = useClientList();
+  const { activeClientId } = useActiveClient();
+  const clientId = activeClientId ?? clients?.[0]?.id ?? null;
+  const clientName = clients?.find((c) => c.id === clientId)?.name;
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["costs", clientId],
+    queryFn: () => getCosts(clientId),
+    refetchInterval: 10_000, // live: refresh as agents run
   });
 
   const agents = data?.by_agent ?? [];
@@ -34,14 +41,21 @@ export function CostMonitor() {
 
   return (
     <div className="xp-window !rounded-md">
-      <div className="bg-[#d4d0c8] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a246a]">
-        💰 Cost Monitor
+      <div className="flex items-center gap-2 bg-[#d4d0c8] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a246a]">
+        {/* Live indicator — steady green dot, pulses while a refresh is in flight */}
+        <span className="relative inline-flex h-2.5 w-2.5" title="Live — refreshes every 10s">
+          {isFetching && (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+          )}
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+        </span>
+        💰 Cost Monitor{clientName ? ` — ${clientName}` : ""}
       </div>
       <div className="space-y-1 bg-white p-3 font-mono text-[12px] text-neutral-700">
         {isLoading ? (
           <div className="py-2 text-center text-neutral-400">Loading costs…</div>
         ) : agents.length === 0 ? (
-          <div className="py-2 text-center text-neutral-400">No cost data yet.</div>
+          <div className="py-2 text-center text-neutral-400">No cost data yet for this client.</div>
         ) : (
           agents.map((a) => (
             <div key={a.agent} className="flex items-center gap-2">
