@@ -7,6 +7,8 @@
  *  - bottom taskbar shows every open window; click to focus / minimize
  */
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { UserButton } from "@clerk/nextjs";
 import { Monitor, Cpu } from "lucide-react";
 import {
   useWindowManager,
@@ -15,6 +17,9 @@ import {
   DESKTOP_APPS,
 } from "@/components/window-manager";
 import { QuickActionsBar, TriggerFab } from "@/components/quick-actions";
+
+// Auth/splash routes render bare — no XP desktop chrome around them.
+const BARE_ROUTES = ["/welcome", "/sign-in", "/sign-up", "/onboarding"];
 
 function Clock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -33,11 +38,23 @@ function Clock() {
 export default function Shell({ children }: { children: React.ReactNode }) {
   const wm = useWindowManager();
   const open = wm.windows.filter((w) => !w.closing);
+  const pathname = usePathname();
+
+  // Splash / sign-in / onboarding: full-screen, no desktop chrome.
+  if (BARE_ROUTES.some((p) => pathname?.startsWith(p))) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex h-screen flex-col">
-      {/* Always-visible Quick Actions bar — client picker + Trigger + Refresh */}
-      <QuickActionsBar />
+      {/* Always-visible Quick Actions bar — client picker + Trigger + Refresh.
+          UserButton sits top-right over the bar (XP title-bar style). */}
+      <div className="relative">
+        <QuickActionsBar />
+        <div className="absolute right-3 top-1/2 z-40 -translate-y-1/2">
+          <UserButton appearance={{ elements: { avatarBox: "h-6 w-6" } }} />
+        </div>
+      </div>
 
       <div className="relative flex min-h-0 flex-1">
         {/* Sidebar (Start-menu style) — items open windows */}

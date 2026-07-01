@@ -4,6 +4,7 @@
  * NEXT_PUBLIC_API_URL (the Railway deployment).
  */
 import axios from "axios";
+import { getClerkToken } from "./auth";
 
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -16,6 +17,17 @@ export const api = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 30000,
+});
+
+// Attach the Clerk session token to every request. When backend auth is
+// disabled (CLERK_SECRET_KEY unset) the header is simply ignored, so this is
+// safe before keys are configured. One interceptor covers all api.* calls.
+api.interceptors.request.use(async (config) => {
+  const token = await getClerkToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 /* ------------------------------------------------------------------ */
