@@ -102,6 +102,10 @@ export default function WelcomePage() {
         ))}
       </div>
 
+      <style>{`
+        .cl-lastAuthenticationStrategyBadge { display: none !important; }
+        .cl-internal-fxb5iq { display: none !important; }
+      `}</style>
     </div>
   )
 }
