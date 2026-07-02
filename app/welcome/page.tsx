@@ -12,6 +12,7 @@ export default function WelcomePage() {
       background: 'linear-gradient(135deg, #0f0f1a 0%, #0d1117 50%, #0a0f1e 100%)',
       display: 'flex',
       flexDirection: 'row',
+      alignItems: 'center',
     }}>
 
       {/* Background */}
