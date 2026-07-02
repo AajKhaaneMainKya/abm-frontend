@@ -55,9 +55,9 @@ export default function WelcomePage() {
 
       <SahayakDemoBg />
 
-      <div className="relative z-10 mx-auto grid min-h-screen max-w-7xl grid-cols-1 md:grid-cols-2">
+      <div className="relative z-10 flex min-h-screen w-full flex-col md:flex-row">
         {/* ── LEFT: brand + features + live stat ─────────────── */}
-        <div className="flex flex-col justify-center gap-10 px-8 py-16 sm:px-[60px]">
+        <div className="flex flex-1 flex-col justify-center gap-10 px-8 py-16 sm:px-[60px]">
           <div>
             <div className="flex items-center gap-3">
               <div
@@ -91,7 +91,7 @@ export default function WelcomePage() {
         </div>
 
         {/* ── RIGHT: sign-in panel ───────────────────────────── */}
-        <div className="flex items-center justify-center px-8 py-16">
+        <div className="flex flex-1 items-center justify-center px-8 py-16">
           <div
             className="w-full"
             style={{
@@ -138,6 +138,11 @@ export default function WelcomePage() {
                   dividerLine: "bg-white/10",
                   dividerText: "text-white/30",
                   formButtonPrimary: "bg-teal-500 hover:bg-teal-400 text-white font-medium",
+                  // Clerk's footer has its own solid background that bled past
+                  // the panel — make it (and its inner card) transparent.
+                  footer: "bg-transparent bg-none",
+                  footerAction: "bg-transparent",
+                  footerActionText: "text-white/50",
                 },
               }}
             />
