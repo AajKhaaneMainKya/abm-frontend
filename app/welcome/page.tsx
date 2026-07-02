@@ -116,6 +116,8 @@ export default function WelcomePage() {
           boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
           boxSizing: 'border-box',
           overflow: 'hidden',
+          overflowY: 'auto',
+          maxHeight: 'calc(100vh - 80px)',
         }}>
           <p style={{
             color:'rgba(255,255,255,0.4)',
@@ -133,6 +135,7 @@ export default function WelcomePage() {
                 borderRadius: '8px',
               },
               elements: {
+                rootBox: { width: '100%' },
                 card: { background: 'transparent', boxShadow: 'none', padding: 0 },
                 headerTitle: { color: '#ffffff' },
                 headerSubtitle: { color: 'rgba(255,255,255,0.5)' },
