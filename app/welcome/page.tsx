@@ -27,8 +27,8 @@ export default function WelcomePage() {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '60px',
+        justifyContent: 'flex-start',
+        padding: '130px 60px 60px 60px',
         boxSizing: 'border-box',
       }}>
         {/* Logo */}
