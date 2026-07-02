@@ -15,7 +15,9 @@ export default function WelcomePage() {
     }}>
 
       {/* Background */}
-      <SahayakDemoBg />
+      <div style={{position:'absolute', inset:0, zIndex:0, pointerEvents:'none'}}>
+        <SahayakDemoBg />
+      </div>
 
       {/* LEFT COLUMN */}
       <div style={{
