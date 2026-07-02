@@ -1,19 +1,36 @@
 "use client";
 
 /**
- * Sahayak splash + sign-in. A full-screen animated mockup of Sahayak running
- * (components/sahayak-demo-bg) plays behind a centered frosted-glass sign-in
- * panel. The animation is the "story" (replaces the old left column) and is
- * desktop-only; mobile falls back to solid teal with the panel full width.
+ * Sahayak sign-in — clean dark SaaS login (Linear/Vercel/Raycast direction).
+ * Deep-navy gradient with an ambient grid + orbs (components/sahayak-demo-bg),
+ * a 50/50 split: brand story + live stat on the left, frosted sign-in panel on
+ * the right. Stacks on mobile (feature rows hidden on very small screens).
  *
- * We embed Clerk's prebuilt <SignIn/> (hash routing, no catch-all route needed).
- * See SETUP_AUTH.md to switch to custom OAuth buttons.
+ * Clerk's <SignIn/> is themed dark via the appearance API. See SETUP_AUTH.md.
  */
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SignIn, useAuth } from "@clerk/nextjs";
-import SahayakDemoBg from "@/components/sahayak-demo-bg";
+import SahayakDemoBg, { LiveStat } from "@/components/sahayak-demo-bg";
+
+const FEATURES = [
+  {
+    icon: "🔍",
+    title: "Finds companies matching your ICP",
+    sub: "Scout agent searches 24/7 — no manual list building",
+  },
+  {
+    icon: "✉️",
+    title: "Writes emails that don't sound like AI",
+    sub: "6-agent pipeline. Provenance check. Voice matching.",
+  },
+  {
+    icon: "🧠",
+    title: "Learns from every reply",
+    sub: "Memory agent updates strategy after every outcome",
+  },
+];
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -24,53 +41,106 @@ export default function WelcomePage() {
   }, [isLoaded, isSignedIn, router]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden" style={{ background: "#0a0a1a" }}>
-      {/* Mobile fallback: solid teal (animation hidden < md) */}
-      <div className="absolute inset-0 md:hidden" style={{ background: "#008080" }} />
+    <div
+      className="relative min-h-screen w-full overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, #0f0f1a 0%, #0d1117 50%, #0a0f1e 100%)",
+      }}
+    >
+      <style>{`
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .wl-row { animation: fadeInUp .5s ease both; }
+      `}</style>
 
-      {/* Animated "Sahayak running" desktop (desktop only) + dimming overlay */}
       <SahayakDemoBg />
 
-      {/* Sign-in panel — centered, nudged slightly right of centre on desktop */}
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-6 md:justify-end md:pr-[10%] lg:pr-[14%]">
-        <div className="w-full max-w-[400px]">
-          <h1
-            className="text-center font-bold tracking-tight text-white"
-            style={{
-              fontFamily: "Segoe UI, Tahoma, Verdana, sans-serif",
-              fontSize: "40px",
-              textShadow: "0 2px 16px rgba(0,0,0,0.5)",
-            }}
-          >
-            Sahayak
-          </h1>
-          <p className="mb-5 text-center text-[15px] font-light text-white/85">
-            Your outbound motion. Automated.
-          </p>
-
-          <div
-            className="overflow-hidden rounded-xl p-5"
-            style={{
-              background: "rgba(255,255,255,0.95)",
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              boxShadow: "0 25px 50px rgba(0,0,0,0.5)",
-            }}
-          >
-            <div className="flex justify-center">
-              <SignIn
-                routing="hash"
-                fallbackRedirectUrl="/"
-                signUpForceRedirectUrl="/onboarding"
-                appearance={{
-                  elements: {
-                    rootBox: "w-full",
-                    cardBox: "w-full shadow-none",
-                    card: "w-full border-0 shadow-none p-0 bg-transparent",
-                  },
-                }}
-              />
+      <div className="relative z-10 mx-auto grid min-h-screen max-w-7xl grid-cols-1 md:grid-cols-2">
+        {/* ── LEFT: brand + features + live stat ─────────────── */}
+        <div className="flex flex-col justify-center gap-10 px-8 py-16 sm:px-[60px]">
+          <div>
+            <div className="flex items-center gap-3">
+              <div
+                className="grid h-8 w-8 place-items-center rounded-lg text-[15px] font-bold text-white"
+                style={{ background: "linear-gradient(135deg, #14b8a6, #6366f1)" }}
+              >
+                S
+              </div>
+              <span className="text-[32px] font-bold leading-none text-white">Sahayak</span>
             </div>
+            <p className="mt-3 text-[16px] text-white/60">Your outbound motion. Automated.</p>
+          </div>
+
+          <div className="hidden flex-col gap-8 sm:flex">
+            {FEATURES.map((f, i) => (
+              <div
+                key={f.title}
+                className="wl-row flex items-start gap-3"
+                style={{ animationDelay: `${0.2 + i * 0.2}s` }}
+              >
+                <span className="text-xl leading-none">{f.icon}</span>
+                <div>
+                  <div className="text-[15px] font-semibold text-white">{f.title}</div>
+                  <div className="mt-0.5 text-[13px] text-white/45">{f.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <LiveStat />
+        </div>
+
+        {/* ── RIGHT: sign-in panel ───────────────────────────── */}
+        <div className="flex items-center justify-center px-8 py-16">
+          <div
+            className="w-full"
+            style={{
+              maxWidth: "420px",
+              margin: "0 auto",
+              padding: "48px",
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "16px",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.05), 0 20px 40px rgba(0,0,0,0.4)",
+            }}
+          >
+            <p className="mb-4 text-[13px] text-white/40">Welcome back</p>
+            <SignIn
+              routing="hash"
+              fallbackRedirectUrl="/"
+              signUpForceRedirectUrl="/onboarding"
+              appearance={{
+                variables: {
+                  // Clerk v7 variable names (renamed from the core-1 set):
+                  //   colorText->colorForeground, colorTextSecondary->colorMutedForeground,
+                  //   colorInputBackground->colorInput, colorInputText->colorInputForeground.
+                  colorBackground: "transparent",
+                  colorForeground: "#ffffff",
+                  colorMutedForeground: "rgba(255,255,255,0.5)",
+                  colorInput: "rgba(255,255,255,0.05)",
+                  colorInputForeground: "#ffffff",
+                  colorPrimary: "#14b8a6",
+                  borderRadius: "8px",
+                },
+                elements: {
+                  card: "shadow-none bg-transparent p-0 w-full",
+                  cardBox: "w-full shadow-none",
+                  rootBox: "w-full",
+                  headerTitle: "text-white text-xl font-semibold",
+                  headerSubtitle: "text-white/50 text-sm",
+                  socialButtonsBlockButton:
+                    "border border-white/10 bg-white/5 text-white hover:bg-white/10",
+                  formFieldInput:
+                    "bg-white/5 border-white/10 text-white placeholder:text-white/30",
+                  footerActionLink: "text-teal-400 hover:text-teal-300",
+                  dividerLine: "bg-white/10",
+                  dividerText: "text-white/30",
+                  formButtonPrimary: "bg-teal-500 hover:bg-teal-400 text-white font-medium",
+                },
+              }}
+            />
           </div>
         </div>
       </div>

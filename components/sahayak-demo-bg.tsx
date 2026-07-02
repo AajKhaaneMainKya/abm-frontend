@@ -1,245 +1,103 @@
 "use client";
 
 /**
- * Animated "Sahayak running" desktop — a pure-CSS/JS mockup shown behind the
- * /welcome sign-in panel. No backend calls; everything is fake, driven by
- * timers. Desktop only (hidden on mobile — the page falls back to solid teal).
+ * Ambient background + live-stat ticker for the /welcome page.
  *
- * Lint note: this repo errors on react-hooks/set-state-in-effect, so every
- * setState here runs inside a timer callback — never synchronously in an effect
- * body. Initial values come from useState initializers. Counters use setInterval
- * (right tool for discrete multi-second ticks; rAF at 60fps to bump an 8s
- * counter would just burn cycles). All motion is opacity/transform only.
+ * Redesigned to a clean SaaS-login aesthetic (Linear/Vercel/Raycast): a subtle
+ * animated grid and two soft floating orbs — pure CSS, no JS. The old floating
+ * XP windows are gone. `LiveStat` is the one bit of "live" flavour: fake
+ * counters that tick up (setState only in timer callbacks — this repo errors on
+ * react-hooks/set-state-in-effect).
  */
 
 import { useEffect, useState } from "react";
-import { Monitor, Cpu, Inbox } from "lucide-react";
 
-const DECISIONS = [
-  "► Discovering accounts for TenarAI — 30-day goal: 5 calls",
-  "► Signal detected: Rocketlane raised Series B — triggering email",
-  "► 3 accounts enriched — routing to Personalizer",
-  "► Email scored 8.2/10 — confidence 81 — auto-sending",
-  "► Memory updated — proof_point angle outperforming",
-  "► Gap analysis: missing Fintech segment — searching...",
-];
-
-const COMPANIES = [
-  "Rocketlane", "Clueso", "Groww", "Razorpay",
-  "Chargebee", "Freshworks", "Zoho", "Postman",
-];
-
-function WindowFrame({
-  title,
-  icon,
-  className,
-  style,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  children: React.ReactNode;
-}) {
+/** Full-bleed ambient background: grid + floating orbs. Decorative only. */
+export default function SahayakDemoBg() {
   return (
-    <div
-      className={`overflow-hidden rounded-lg border border-black/50 bg-[#ece9d8] shadow-2xl ${className ?? ""}`}
-      style={style}
-    >
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <style>{`
+        @keyframes sdGridDrift { from { background-position: 0 0; } to { background-position: 40px 40px; } }
+        @keyframes sdFloatA { 0%,100% { transform: translate(0,0); } 50% { transform: translate(40px,30px); } }
+        @keyframes sdFloatB { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-40px,-30px); } }
+      `}</style>
+
+      {/* animated grid */}
       <div
-        className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-white"
-        style={{ background: "linear-gradient(to right, #0a246a, #1b5dbf)" }}
-      >
-        {icon}
-        <span>{title}</span>
-      </div>
-      <div className="p-3">{children}</div>
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          animation: "sdGridDrift 6s linear infinite",
+        }}
+      />
+
+      {/* soft purple orb, top-left */}
+      <div
+        style={{
+          position: "absolute",
+          top: "-200px",
+          left: "-200px",
+          width: "600px",
+          height: "600px",
+          background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)",
+          animation: "sdFloatA 16s ease-in-out infinite",
+        }}
+      />
+
+      {/* soft teal orb, bottom-right */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "-200px",
+          right: "-200px",
+          width: "600px",
+          height: "600px",
+          background: "radial-gradient(circle, rgba(20,184,166,0.08) 0%, transparent 70%)",
+          animation: "sdFloatB 18s ease-in-out infinite",
+        }}
+      />
     </div>
   );
 }
 
-/* ── Window 1: Orchestrator — typewriter decisions ──────────── */
-function OrchestratorWindow() {
-  const [typed, setTyped] = useState("");
+/** Fake "live" activity counters for the bottom of the left column. */
+export function LiveStat() {
+  const [discovered, setDiscovered] = useState(47);
+  const [sent, setSent] = useState(12);
+  const [replies] = useState(3);
 
   useEffect(() => {
-    let charTimer: ReturnType<typeof setInterval>;
-    let holdTimer: ReturnType<typeof setTimeout>;
-
-    function playLine(i: number) {
-      const text = DECISIONS[i];
-      let pos = 0;
-      charTimer = setInterval(() => {
-        pos += 1;
-        setTyped(text.slice(0, pos));
-        if (pos >= text.length) {
-          clearInterval(charTimer);
-          holdTimer = setTimeout(() => {
-            setTyped("");
-            playLine((i + 1) % DECISIONS.length);
-          }, 3000);
-        }
-      }, 26);
-    }
-
-    playLine(0);
-    return () => {
-      clearInterval(charTimer);
-      clearTimeout(holdTimer);
-    };
-  }, []);
-
-  return (
-    <WindowFrame
-      title="Orchestrator"
-      icon={<Cpu size={13} />}
-      className="w-[400px]"
-      style={{ position: "absolute", left: "4%", top: "9%" }}
-    >
-      <div className="min-h-[64px] rounded bg-[#0b1020] p-3 font-mono text-[12px] leading-relaxed text-emerald-300">
-        <span>{typed}</span>
-        <span className="sd-cursor">▋</span>
-      </div>
-    </WindowFrame>
-  );
-}
-
-/* ── Window 2: Pipeline — incrementing counters ─────────────── */
-function CounterRow({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="flex items-center justify-between border-b border-black/10 py-1 last:border-0">
-      <span className="text-[12px] font-medium text-neutral-600">{label}</span>
-      {/* key changes on value → remount runs the flash animation */}
-      <span key={value} className="sd-tick rounded px-1.5 text-[13px] font-bold tabular-nums" style={{ color }}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function PipelineWindow() {
-  const [discovered, setDiscovered] = useState(12);
-  const [enriched, setEnriched] = useState(7);
-  const [sent, setSent] = useState(3);
-
-  useEffect(() => {
-    const d = setInterval(() => setDiscovered((n) => n + 1), 8000);
-    const e = setInterval(() => setEnriched((n) => n + 1), 12000);
-    const s = setInterval(() => setSent((n) => n + 1), 20000);
+    const d = setInterval(() => setDiscovered((n) => n + 1), 5000);
+    const s = setInterval(() => setSent((n) => n + 1), 16000);
     return () => {
       clearInterval(d);
-      clearInterval(e);
       clearInterval(s);
     };
   }, []);
 
   return (
-    <WindowFrame
-      title="Pipeline"
-      icon={<Monitor size={13} />}
-      className="w-[300px]"
-      style={{ position: "absolute", left: "6%", bottom: "9%" }}
-    >
-      <div className="rounded bg-white/70 px-2 py-1">
-        <CounterRow label="DISCOVERED" value={discovered} color="#0a51c9" />
-        <CounterRow label="ENRICHED" value={enriched} color="#0a51c9" />
-        <CounterRow label="SENT" value={sent} color="#1a7f37" />
-        <CounterRow label="REPLIED" value={1} color="#1a7f37" />
-      </div>
-    </WindowFrame>
-  );
-}
-
-/* ── Window 3: Draft Queue — card appears then approves ─────── */
-function DraftQueueWindow() {
-  const [idx, setIdx] = useState(0);
-  const [approved, setApproved] = useState(false);
-
-  useEffect(() => {
-    let approveT: ReturnType<typeof setTimeout>;
-    let nextT: ReturnType<typeof setTimeout>;
-
-    function schedule(i: number) {
-      approveT = setTimeout(() => setApproved(true), 8000);
-      nextT = setTimeout(() => {
-        setApproved(false);
-        setIdx((i + 1) % COMPANIES.length);
-        schedule((i + 1) % COMPANIES.length);
-      }, 15000);
-    }
-
-    schedule(0); // effect body only schedules timers — no synchronous setState
-    return () => {
-      clearTimeout(approveT);
-      clearTimeout(nextT);
-    };
-  }, []);
-
-  const company = COMPANIES[idx];
-
-  return (
-    <WindowFrame
-      title="Draft Queue"
-      icon={<Inbox size={13} />}
-      className="w-[340px]"
-      style={{ position: "absolute", right: "-48px", top: "50%", transform: "translateY(-50%)" }}
-    >
-      {/* key on idx → card remounts and fades in fresh each cycle */}
-      <div key={idx} className="sd-card rounded-md border border-black/10 bg-white p-3 shadow">
-        <div className="flex items-start justify-between gap-2">
-          <div className="text-[13px] font-bold text-neutral-900">{company}</div>
-          <span className="shrink-0 rounded bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700">
-            8.4 ✓
-          </span>
-        </div>
-        <div className="mt-1 text-[12px] italic text-neutral-500">
-          &ldquo;scaling outbound without a hire&rdquo;
-        </div>
-        <div className="mt-2 h-[20px]">
-          {approved && (
-            <span className="sd-approve inline-block rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-bold text-white">
-              Approved ✓
-            </span>
-          )}
-        </div>
-      </div>
-    </WindowFrame>
-  );
-}
-
-export default function SahayakDemoBg() {
-  return (
-    <div className="pointer-events-none absolute inset-0 hidden overflow-hidden md:block" aria-hidden="true">
-      <style>{`
-        @keyframes sdBlink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-        .sd-cursor { animation: sdBlink 1s steps(1) infinite; }
-        @keyframes sdFlash { from { background:#fde047; color:#111; } to { background:transparent; } }
-        .sd-tick { animation: sdFlash .7s ease; }
-        @keyframes sdCardIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:none; } }
-        .sd-card { animation: sdCardIn .5s ease both; }
-        @keyframes sdApprove { from { opacity:0; transform: scale(.9); } to { opacity:1; transform:none; } }
-        .sd-approve { animation: sdApprove .4s ease both; }
-      `}</style>
-
-      {/* faint desktop wash so the windows read as "on a screen" */}
-      <div
-        className="absolute inset-0 opacity-[0.5]"
-        style={{ background: "radial-gradient(1200px 600px at 30% 40%, #142a4a 0%, #0a0a1a 70%)" }}
-      />
-
-      <OrchestratorWindow />
-      <PipelineWindow />
-      <DraftQueueWindow />
-
-      {/* dimming overlay so the sign-in panel pops */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.7) 100%)",
-        }}
-      />
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-white/35">
+      <span className="inline-flex items-center gap-1.5">
+        <span
+          className="inline-block h-2 w-2 rounded-full bg-emerald-400"
+          style={{ animation: "pulse 2s ease-in-out infinite" }}
+        />
+        Live
+      </span>
+      <span>·</span>
+      <span>
+        <span className="text-white/60 tabular-nums">{discovered}</span> accounts discovered today
+      </span>
+      <span>·</span>
+      <span>
+        <span className="text-white/60 tabular-nums">{sent}</span> emails sent
+      </span>
+      <span>·</span>
+      <span>
+        <span className="text-white/60 tabular-nums">{replies}</span> replies
+      </span>
     </div>
   );
 }
