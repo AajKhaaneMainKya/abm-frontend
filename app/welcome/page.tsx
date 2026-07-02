@@ -68,7 +68,7 @@ export default function WelcomePage() {
 
       <div className="relative z-10 flex min-h-screen w-full flex-col md:flex-row">
         {/* ── LEFT: brand + features + live stat ─────────────── */}
-        <div className="flex flex-1 flex-col justify-center gap-10 px-8 py-16 sm:px-[60px]">
+        <div className="flex flex-1 flex-col justify-center gap-10 px-8 py-16 sm:px-[60px] md:h-screen">
           <div>
             <div className="flex items-center gap-3">
               <div
@@ -102,7 +102,10 @@ export default function WelcomePage() {
         </div>
 
         {/* ── RIGHT: sign-in panel ───────────────────────────── */}
-        <div className="flex flex-1 items-center justify-center px-8 py-16">
+        <div
+          className="flex flex-1 items-center justify-center md:h-screen"
+          style={{ padding: "40px 60px 40px 40px" }}
+        >
           <div
             className="w-full"
             style={{
@@ -118,6 +121,7 @@ export default function WelcomePage() {
             }}
           >
             <p className="mb-4 text-[13px] text-white/40">Welcome back</p>
+            <div style={{ borderRadius: "16px", overflow: "hidden", width: "100%" }}>
             <SignIn
               routing="hash"
               fallbackRedirectUrl="/"
@@ -157,6 +161,7 @@ export default function WelcomePage() {
                 },
               }}
             />
+            </div>
           </div>
         </div>
       </div>
