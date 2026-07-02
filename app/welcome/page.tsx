@@ -51,6 +51,17 @@ export default function WelcomePage() {
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
         .wl-row { animation: fadeInUp .5s ease both; }
+
+        /* Clerk paints the card + footer with its own opaque (near-black)
+           background whose specificity beats appearance classes. Force the
+           whole widget transparent so it blends into our frosted panel — the
+           footer was rendering as a solid black block breaking out. */
+        .cl-rootBox, .cl-cardBox, .cl-card, .cl-footer, .cl-footerAction {
+          background: transparent !important;
+          box-shadow: none !important;
+          border: none !important;
+        }
+        .cl-footer { border-top: 1px solid rgba(255,255,255,0.08) !important; }
       `}</style>
 
       <SahayakDemoBg />
