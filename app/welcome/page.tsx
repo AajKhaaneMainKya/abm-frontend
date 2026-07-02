@@ -46,8 +46,7 @@ export default function WelcomePage() {
         <p style={{
           color:'rgba(255,255,255,0.5)',
           fontSize:'16px',
-          marginBottom:'48px',
-          margin:'0 0 48px 0'
+          margin:'0 0 32px 0'
         }}>
           Your outbound motion. Automated.
         </p>
@@ -60,7 +59,7 @@ export default function WelcomePage() {
         ].map((f, i) => (
           <div key={i} style={{
             display:'flex', gap:'16px', alignItems:'flex-start',
-            marginBottom:'28px',
+            marginBottom:'20px',
             animation:`fadeInUp 0.5s ease forwards`,
             animationDelay:`${i * 0.2}s`,
             opacity: 0,
@@ -103,7 +102,7 @@ export default function WelcomePage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '40px',
+        padding: '24px',
         boxSizing: 'border-box',
       }}>
         <div style={{
@@ -112,7 +111,7 @@ export default function WelcomePage() {
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '16px',
-          padding: '40px',
+          padding: '24px',
           backdropFilter: 'blur(20px)',
           boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
           boxSizing: 'border-box',
