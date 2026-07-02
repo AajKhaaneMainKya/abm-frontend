@@ -35,8 +35,8 @@ export default function WelcomePage() {
       <div style={{
         width:'100%',
         maxWidth:'420px',
-        background:'rgba(255,255,255,0.03)',
-        border:'1px solid rgba(255,255,255,0.08)',
+        background:'transparent',
+        border:'none',
         borderRadius:'16px',
         padding:'32px',
         backdropFilter:'blur(20px)',
