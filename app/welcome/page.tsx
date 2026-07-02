@@ -37,10 +37,6 @@ export default function WelcomePage() {
         maxWidth:'420px',
         background:'transparent',
         border:'none',
-        borderRadius:'16px',
-        padding:'32px',
-        backdropFilter:'blur(20px)',
-        boxShadow:'0 25px 50px rgba(0,0,0,0.5)',
         boxSizing:'border-box',
         marginBottom:'32px',
       }}>
