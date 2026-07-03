@@ -448,3 +448,42 @@ body {
 .xp-context-menu__item:hover {
   background: var(--surface-hover);
 }
+
+/* ============================================================
+   Aha-moment / launching page animations
+   ============================================================ */
+
+@keyframes sk-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: sk-fade-up 0.35s ease both;
+}
+
+@keyframes sk-slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: sk-slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes sk-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes sk-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes sk-blink {
+  0%, 49%  { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.sk-caret {
+  animation: sk-blink 1s step-end infinite;
+}
+

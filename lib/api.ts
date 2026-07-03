@@ -278,6 +278,40 @@ export async function getDecisions(clientId: string): Promise<Decision[]> {
 }
 
 /* ------------------------------------------------------------------ */
+/* Live activity feed (Aha moment / launching page)                   */
+/* ------------------------------------------------------------------ */
+
+export interface ActivityItem {
+  action: string;
+  reasoning: string;
+  created_at: string;
+  type: "decision" | "account";
+}
+
+export interface ActivityAccount {
+  company: string;
+  industry: string | null;
+  icp_match_score: number;
+}
+
+export interface ActivityResponse {
+  activity: ActivityItem[];
+  accounts_discovered: number;
+  accounts: ActivityAccount[];
+}
+
+export async function getActivity(clientId: string): Promise<ActivityResponse> {
+  const { data } = await api.get<ActivityResponse>(
+    `/api/clients/${clientId}/activity`,
+  );
+  return {
+    activity: data.activity ?? [],
+    accounts_discovered: data.accounts_discovered ?? 0,
+    accounts: data.accounts ?? [],
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /* Queue (email sequences)                                            */
 /* ------------------------------------------------------------------ */
 

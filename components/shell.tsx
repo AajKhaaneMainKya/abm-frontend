@@ -202,7 +202,8 @@ function TopBar({ pathname }: { pathname: string | null }) {
 export default function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  if (BARE_ROUTES.some((p) => pathname?.startsWith(p))) {
+  // Bare (no app chrome): auth/splash routes and the full-screen launching page.
+  if (BARE_ROUTES.some((p) => pathname?.startsWith(p)) || pathname?.endsWith("/launching")) {
     return <>{children}</>;
   }
 
