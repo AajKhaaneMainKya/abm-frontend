@@ -1,3 +1,4 @@
+import DemoBanner from "@/components/demo-banner";
 "use client";
 
 /**
@@ -47,6 +48,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen flex-col">
+      <DemoBanner />
       {/* Always-visible Quick Actions bar — client picker + Trigger + Refresh.
           UserButton sits top-right over the bar (XP title-bar style). */}
       <div className="relative">
