@@ -24,8 +24,8 @@ import {
   LogOut,
   type LucideIcon,
 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
 import DemoBanner from "@/components/demo-banner";
+import OnboardingTour from "@/components/onboarding-tour";
 import { useClientList } from "@/components/client-select";
 import { useActiveClient } from "@/components/active-client";
 import { triggerOrchestrator } from "@/lib/api";
@@ -37,16 +37,17 @@ interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  tour?: string;
 }
 
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clients", label: "Clients", icon: Building2 },
-  { href: "/queue", label: "Queue", icon: Inbox },
+  { href: "/queue", label: "Queue", icon: Inbox, tour: "nav-queue" },
   { href: "/decisions", label: "Decisions", icon: ScrollText },
   { href: "/weekly-brief", label: "Weekly Brief", icon: FileText },
   { href: "/browser-agent", label: "Browser Agent", icon: Globe },
-  { href: "/clients/new", label: "New Client", icon: UserPlus },
+  { href: "/clients/new", label: "New Client", icon: UserPlus, tour: "nav-new-client" },
 ];
 
 function isActive(pathname: string | null, href: string): boolean {
@@ -89,10 +90,11 @@ function Sidebar({ pathname }: { pathname: string | null }) {
     <aside className="sk-sidebar hidden md:flex">
       <Logo />
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
-        {NAV.map(({ href, label, icon: Icon }) => (
+        {NAV.map(({ href, label, icon: Icon, tour }) => (
           <Link
             key={href}
             href={href}
+            data-tour={tour}
             className={`nav-item ${isActive(pathname, href) ? "nav-item--active" : ""}`}
           >
             <Icon size={18} strokeWidth={2} />
@@ -216,6 +218,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+      <OnboardingTour />
     </div>
   );
 }
