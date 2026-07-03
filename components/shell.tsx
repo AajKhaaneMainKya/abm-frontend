@@ -1,5 +1,5 @@
-import DemoBanner from "@/components/demo-banner";
 "use client";
+import DemoBanner from "@/components/demo-banner";
 
 /**
  * App shell — the OS chrome around the windowed desktop:
