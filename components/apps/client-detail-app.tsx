@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Play, Pause, Pencil, UserPlus } from "lucide-react";
@@ -15,10 +16,8 @@ import { PipelineBars } from "@/components/pipeline";
 import { DecisionsTable } from "@/components/decisions";
 import { QueueView } from "@/components/queue";
 import { CreativesGrid } from "@/components/creatives";
-import { useWindowManager } from "@/components/window-manager";
 
-const modalInput =
-  "w-full xp-inset rounded-sm px-2 py-1.5 text-[13px] text-neutral-800 outline-none focus:ring-1 focus:ring-[#316ac5]";
+const modalInput = "input";
 
 function AddAccountModal({
   open, onClose, clientId, onSaved,
@@ -100,18 +99,18 @@ function AddAccountModal({
           <input className={modalInput} type="number" placeholder="Company size" value={size} onChange={(e) => setSize(e.target.value)} />
         </div>
         {errors.length > 0 && (
-          <ul className="list-disc border border-[#a02020] bg-[#fdeaea] px-5 py-2 text-[12px] text-[#7a1818]">
+          <ul className="list-disc rounded-md border border-[#fecaca] bg-[var(--danger-soft)] px-5 py-2 text-[12px] text-[#991b1b]">
             {errors.map((e) => <li key={e}>{e}</li>)}
           </ul>
         )}
-        <p className="text-[11px] text-neutral-400">Added at state ENRICHED (enrichment layer 3) — ready for drafting.</p>
+        <p className="text-[11px] text-[var(--text-secondary)]">Added at state ENRICHED (enrichment layer 3) — ready for drafting.</p>
       </div>
     </XpDialog>
   );
 }
 
 function ControlsBar({ client, clientId }: { client: Client; clientId: string }) {
-  const wm = useWindowManager();
+  const router = useRouter();
   const qc = useQueryClient();
   const [dialog, setDialog] = useState<{ title: string; body: string } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -132,23 +131,25 @@ function ControlsBar({ client, clientId }: { client: Client; clientId: string })
   });
 
   return (
-    <div className="sticky top-0 z-10 -mx-3 mb-3 flex flex-wrap items-center gap-2 border-b border-[#aca899] bg-[#ece9d8] px-3 py-2 shadow-sm">
-      <XpButton onClick={() => triggerM.mutate()} disabled={triggerM.isPending}>
-        <span className="inline-flex items-center gap-1"><Play size={13} /> {triggerM.isPending ? "Triggering…" : "Trigger Now"}</span>
+    <div className="mb-4 flex flex-wrap items-center gap-2">
+      <XpButton variant="primary" onClick={() => triggerM.mutate()} disabled={triggerM.isPending}>
+        <Play size={14} /> {triggerM.isPending ? "Triggering…" : "Trigger Now"}
       </XpButton>
       <XpButton onClick={() => toggleM.mutate()} disabled={toggleM.isPending}>
-        <span className="inline-flex items-center gap-1">
-          {client.active ? <><Pause size={13} /> Pause</> : <><Play size={13} /> Resume</>}
-        </span>
+        {client.active ? <><Pause size={14} /> Pause</> : <><Play size={14} /> Resume</>}
       </XpButton>
-      <XpButton onClick={() => wm.open("client-edit", { props: { clientId }, title: `Edit — ${client.name}` })}>
-        <span className="inline-flex items-center gap-1"><Pencil size={13} /> Edit</span>
+      <XpButton onClick={() => router.push(`/clients/${clientId}/edit`)}>
+        <Pencil size={14} /> Edit
       </XpButton>
-      <XpButton variant="primary" onClick={() => setAddOpen(true)}>
-        <span className="inline-flex items-center gap-1"><UserPlus size={13} /> Add Account</span>
+      <XpButton onClick={() => setAddOpen(true)}>
+        <UserPlus size={14} /> Add Account
       </XpButton>
-      <span className={`ml-1 text-[11px] font-bold uppercase tracking-wide ${client.active ? "text-[#2d7a2d]" : "text-[#c8a020]"}`}>
-        {client.active ? "● Active" : "❚❚ Paused"}
+      <span
+        className="ml-1 inline-flex items-center gap-1.5 text-[12px] font-medium"
+        style={{ color: client.active ? "var(--success)" : "var(--warning)" }}
+      >
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "currentColor" }} />
+        {client.active ? "Active" : "Paused"}
       </span>
 
       <AddAccountModal
@@ -168,7 +169,7 @@ function ControlsBar({ client, clientId }: { client: Client; clientId: string })
         title={dialog?.title ?? ""}
         footer={<XpButton variant="primary" onClick={() => setDialog(null)}>OK</XpButton>}
       >
-        <div className="text-[13px] text-neutral-700">{dialog?.body}</div>
+        <div className="text-[13px] text-[var(--foreground)]">{dialog?.body}</div>
       </XpDialog>
     </div>
   );
@@ -189,7 +190,10 @@ export default function ClientDetailApp({ clientId }: { clientId: string }) {
   const chartData = PIPELINE_STATES.map((s) => ({ state: s, count: pipeline.data?.pipeline?.[s] ?? 0 }));
 
   return (
-    <div className="p-3">
+    <div>
+      <div className="mb-4">
+        <h2 className="text-[20px] font-semibold text-[var(--foreground)]">{client.data.name}</h2>
+      </div>
       <ControlsBar client={client.data} clientId={clientId} />
 
       <XpTabs
@@ -204,42 +208,42 @@ export default function ClientDetailApp({ clientId }: { clientId: string }) {
         ]}
       >
         <XpTabPanel value="overview" className="space-y-4">
-          <div className="xp-inset bg-white px-4 py-3">
-            <div className="text-[11px] uppercase tracking-wide text-neutral-400">Campaign goal</div>
-            <div className="text-[14px] font-bold text-[#0a246a]">{campaign.data?.campaign_goal ?? client.data?.campaign_goal ?? "—"}</div>
+          <div className="card p-4">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Campaign goal</div>
+            <div className="text-[14px] font-semibold text-[var(--foreground)]">{campaign.data?.campaign_goal ?? client.data?.campaign_goal ?? "—"}</div>
           </div>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatCard label="Accounts" value={campaign.data?.total_accounts ?? "—"} accent="#1a73e8" />
-            <StatCard label="Sent" value={metrics.data?.sent ?? "—"} accent="#1b5dbf" />
-            <StatCard label="Replies" value={metrics.data?.replied ?? "—"} accent="#008080" />
-            <StatCard label="Converted" value={metrics.data?.converted ?? "—"} accent="#2d7a2d" />
+            <StatCard label="Accounts" value={campaign.data?.total_accounts ?? "—"} accent="#0f766e" />
+            <StatCard label="Sent" value={metrics.data?.sent ?? "—"} accent="#2563eb" />
+            <StatCard label="Replies" value={metrics.data?.replied ?? "—"} accent="#0891b2" />
+            <StatCard label="Converted" value={metrics.data?.converted ?? "—"} accent="#15803d" />
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="xp-window !rounded-md">
-              <div className="bg-[#d4d0c8] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a246a]">Pipeline overview</div>
-              <div className="bg-white p-3" style={{ height: 220 }}>
+            <div className="card-flush">
+              <div className="card-header">Pipeline overview</div>
+              <div className="p-3" style={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: -18 }}>
                     <XAxis dataKey="state" tick={{ fontSize: 9 }} interval={0} angle={-25} textAnchor="end" height={50} />
                     <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
                     <Tooltip />
-                    <Bar dataKey="count" radius={[2, 2, 0, 0]}>
-                      {chartData.map((d) => (<Cell key={d.state} fill={stateColors[d.state] ?? "#1b5dbf"} />))}
+                    <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+                      {chartData.map((d) => (<Cell key={d.state} fill={stateColors[d.state] ?? "#0f766e"} />))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
-            <div className="xp-window !rounded-md">
-              <div className="bg-[#d4d0c8] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a246a]">Recent activity</div>
-              <div className="bg-white p-2"><DecisionsTable decisions={(decisions.data ?? []).slice(0, 5)} compact /></div>
+            <div className="card-flush">
+              <div className="card-header">Recent activity</div>
+              <div className="p-2"><DecisionsTable decisions={(decisions.data ?? []).slice(0, 5)} compact /></div>
             </div>
           </div>
         </XpTabPanel>
 
         <XpTabPanel value="pipeline">
           {pipeline.isLoading ? <Loading /> : pipeline.error ? <ErrorNote error={pipeline.error} /> : (
-            <div className="xp-inset bg-white p-4"><PipelineBars pipeline={pipeline.data?.pipeline ?? {}} /></div>
+            <div className="card p-4"><PipelineBars pipeline={pipeline.data?.pipeline ?? {}} /></div>
           )}
         </XpTabPanel>
 

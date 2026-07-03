@@ -1,80 +1,17 @@
 "use client";
 
 /**
- * XP UI primitives — the chrome accents that give the dashboard its
- * Windows-XP feel: windows with title bars, beveled buttons, chunky
- * progress bars, tabs, badges. Everything else stays clean & modern.
+ * Shared UI primitives — modern SaaS styling (Notion / Linear / Vercel feel).
+ * These keep their historical export names (XpWindow, XpButton, …) so every
+ * consumer picks up the new look without churn, but they render clean, chromeless
+ * components: cards with light headers, flat buttons, thin progress bars, pills.
  */
 import * as React from "react";
 import * as RadixTabs from "@radix-ui/react-tabs";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Minus, Square, Copy } from "lucide-react";
+import { X } from "lucide-react";
 
-/* ---------------- Functional window title bar (window manager) ---------------- */
-
-export function XpTitleBar({
-  title,
-  icon,
-  active = true,
-  isMaximized = false,
-  onMinimize,
-  onMaximize,
-  onClose,
-  onPointerDown,
-  onDoubleClick,
-}: {
-  title: string;
-  icon?: React.ReactNode;
-  active?: boolean;
-  isMaximized?: boolean;
-  onMinimize?: () => void;
-  onMaximize?: () => void;
-  onClose?: () => void;
-  onPointerDown?: (e: React.PointerEvent) => void;
-  onDoubleClick?: () => void;
-}) {
-  // Stop drag from starting when a control button is pressed.
-  const stop = (e: React.PointerEvent) => e.stopPropagation();
-  return (
-    <div
-      className={`xp-titlebar ${active ? "" : "xp-titlebar--inactive"}`}
-      onPointerDown={onPointerDown}
-      onDoubleClick={onDoubleClick}
-      style={{ cursor: "default", touchAction: "none" }}
-    >
-      {icon && <span className="shrink-0">{icon}</span>}
-      <span className="xp-titlebar__title">{title}</span>
-      <span className="xp-titlebar__btns" onPointerDown={stop}>
-        <button
-          type="button"
-          className="xp-titlebar__btn"
-          title="Minimize"
-          onClick={onMinimize}
-        >
-          <Minus size={11} strokeWidth={3} />
-        </button>
-        <button
-          type="button"
-          className="xp-titlebar__btn"
-          title={isMaximized ? "Restore" : "Maximize"}
-          onClick={onMaximize}
-        >
-          {isMaximized ? <Copy size={10} strokeWidth={3} /> : <Square size={9} strokeWidth={3} />}
-        </button>
-        <button
-          type="button"
-          className="xp-titlebar__btn xp-titlebar__btn--close"
-          title="Close"
-          onClick={onClose}
-        >
-          <X size={12} strokeWidth={3} />
-        </button>
-      </span>
-    </div>
-  );
-}
-
-/* ---------------- Window + title bar ---------------- */
+/* ---------------- Card ("window") ---------------- */
 
 export function XpWindow({
   title,
@@ -94,28 +31,15 @@ export function XpWindow({
   bodyStyle?: React.CSSProperties;
 }) {
   return (
-    <section className={`xp-window ${className}`}>
-      <div className="xp-titlebar">
-        {icon && <span className="shrink-0">{icon}</span>}
-        <span className="xp-titlebar__title">{title}</span>
-        {headerRight}
-        <span className="xp-titlebar__btns">
-          <span className="xp-titlebar__btn" aria-hidden title="Minimize">
-            <Minus size={11} strokeWidth={3} />
-          </span>
-          <span className="xp-titlebar__btn" aria-hidden title="Maximize">
-            <Square size={9} strokeWidth={3} />
-          </span>
-          <span
-            className="xp-titlebar__btn xp-titlebar__btn--close"
-            aria-hidden
-            title="Close"
-          >
-            <X size={12} strokeWidth={3} />
-          </span>
+    <section className={`card-flush ${className}`}>
+      <div className="card-header">
+        {icon && <span className="shrink-0 text-[var(--text-secondary)]">{icon}</span>}
+        <span className="flex-1 truncate text-[13px] font-semibold text-[var(--foreground)]">
+          {title}
         </span>
+        {headerRight}
       </div>
-      <div className={`xp-window__body ${bodyClassName}`} style={bodyStyle}>
+      <div className={`p-4 ${bodyClassName}`} style={bodyStyle}>
         {children}
       </div>
     </section>
@@ -134,20 +58,26 @@ export function XpButton({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
   const v =
     variant === "green"
-      ? "xp-btn--green"
+      ? "btn-success"
       : variant === "red"
-        ? "xp-btn--red"
+        ? "btn-danger"
         : variant === "primary"
-          ? "xp-btn--primary"
-          : "";
+          ? "btn-primary"
+          : "btn-secondary";
   return (
-    <button className={`xp-btn ${v} ${className}`} {...props}>
+    <button className={`btn ${v} ${className}`} {...props}>
       {children}
     </button>
   );
 }
 
-/* ---------------- Progress bar (chunky XP style) ---------------- */
+/* ---------------- Progress bar ---------------- */
+
+const TONE_COLOR: Record<string, string> = {
+  green: "var(--success)",
+  teal: "var(--accent)",
+  amber: "var(--warning)",
+};
 
 export function XpProgress({
   value,
@@ -161,19 +91,16 @@ export function XpProgress({
   className?: string;
 }) {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
-  const fillClass =
-    tone === "teal"
-      ? "xp-progress__fill--teal"
-      : tone === "amber"
-        ? "xp-progress__fill--amber"
-        : "";
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <div className="xp-progress flex-1">
-        <div className={`xp-progress__fill ${fillClass}`} style={{ width: `${pct}%` }} />
+      <div className="sk-progress flex-1">
+        <div
+          className="sk-progress__fill"
+          style={{ width: `${pct}%`, background: TONE_COLOR[tone] ?? TONE_COLOR.green }}
+        />
       </div>
       {showValue && (
-        <span className="w-9 text-right text-[11px] font-bold tabular-nums text-neutral-700">
+        <span className="w-9 text-right text-[11px] font-semibold tabular-nums text-[var(--text-secondary)]">
           {pct}%
         </span>
       )}
@@ -181,11 +108,11 @@ export function XpProgress({
   );
 }
 
-/* ---------------- Badge ---------------- */
+/* ---------------- Badge / pill ---------------- */
 
 export function XpBadge({
   children,
-  color = "#316ac5",
+  color = "#0f766e",
   className = "",
 }: {
   children: React.ReactNode;
@@ -194,20 +121,20 @@ export function XpBadge({
 }) {
   return (
     <span
-      className={`xp-badge ${className}`}
-      style={{ background: `${color}1a`, color, borderColor: `${color}55` }}
+      className={`sk-badge ${className}`}
+      style={{ background: `${color}14`, color, borderColor: `${color}33` }}
     >
       {children}
     </span>
   );
 }
 
-/* ---------------- Stat card (XP window mini) ---------------- */
+/* ---------------- Stat card ---------------- */
 
 export function StatCard({
   label,
   value,
-  accent = "#1b5dbf",
+  accent = "#0f766e",
   icon,
 }: {
   label: string;
@@ -216,22 +143,26 @@ export function StatCard({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="xp-window !rounded-md">
-      <div
-        className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold text-white"
-        style={{ background: `linear-gradient(180deg, ${accent} 0%, ${accent}cc 100%)` }}
-      >
-        {icon}
-        <span className="truncate uppercase tracking-wide">{label}</span>
+    <div className="card p-4">
+      <div className="flex items-center gap-2 text-[12px] font-medium text-[var(--text-secondary)]">
+        {icon && (
+          <span
+            className="grid h-6 w-6 place-items-center rounded-md"
+            style={{ background: `${accent}14`, color: accent }}
+          >
+            {icon}
+          </span>
+        )}
+        <span className="truncate">{label}</span>
       </div>
-      <div className="bg-white px-3 py-3">
-        <div className="text-3xl font-bold tabular-nums text-neutral-800">{value}</div>
+      <div className="mt-2 text-2xl font-semibold tabular-nums text-[var(--foreground)]">
+        {value}
       </div>
     </div>
   );
 }
 
-/* ---------------- Tabs (radix, XP styling) ---------------- */
+/* ---------------- Tabs (underline) ---------------- */
 
 export function XpTabs({
   tabs,
@@ -246,23 +177,21 @@ export function XpTabs({
 }) {
   return (
     <RadixTabs.Root value={value} onValueChange={onValueChange}>
-      <RadixTabs.List className="xp-tabs">
+      <RadixTabs.List className="sk-tabs">
         {tabs.map((t) => (
-          <RadixTabs.Trigger key={t.value} value={t.value} className="xp-tab">
+          <RadixTabs.Trigger key={t.value} value={t.value} className="sk-tab">
             {t.label}
           </RadixTabs.Trigger>
         ))}
       </RadixTabs.List>
-      <div className="border border-t-0 border-[#919b9c] bg-[#ece9d8] p-3">
-        {children}
-      </div>
+      <div className="pt-4">{children}</div>
     </RadixTabs.Root>
   );
 }
 
 export const XpTabPanel = RadixTabs.Content;
 
-/* ---------------- Dialog (XP window style) ---------------- */
+/* ---------------- Dialog (modal) ---------------- */
 
 export function XpDialog({
   open,
@@ -280,24 +209,22 @@ export function XpDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[440px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 xp-window">
-          <div className="xp-titlebar">
-            <Dialog.Title className="xp-titlebar__title">{title}</Dialog.Title>
-            <span className="xp-titlebar__btns">
-              <Dialog.Close
-                className="xp-titlebar__btn xp-titlebar__btn--close"
-                aria-label="Close"
-              >
-                <X size={12} strokeWidth={3} />
-              </Dialog.Close>
-            </span>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
+        <Dialog.Content className="card-flush fixed left-1/2 top-1/2 z-50 w-[460px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
+            <Dialog.Title className="text-[15px] font-semibold text-[var(--foreground)]">
+              {title}
+            </Dialog.Title>
+            <Dialog.Close
+              className="grid h-7 w-7 place-items-center rounded-md text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+              aria-label="Close"
+            >
+              <X size={16} />
+            </Dialog.Close>
           </div>
-          <div className="bg-[#ece9d8] px-5 py-5 text-[13px] text-neutral-800">
-            {children}
-          </div>
+          <div className="px-5 py-4 text-[13px] text-[var(--foreground)]">{children}</div>
           {footer && (
-            <div className="flex justify-end gap-2 border-t border-[#c9c4b4] bg-[#ece9d8] px-5 py-3">
+            <div className="flex justify-end gap-2 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-3">
               {footer}
             </div>
           )}
@@ -311,8 +238,8 @@ export function XpDialog({
 
 export function Loading({ label = "Loading…" }: { label?: string }) {
   return (
-    <div className="flex items-center gap-3 p-4 text-[13px] text-neutral-600">
-      <span className="inline-block h-3 w-3 animate-pulse rounded-full bg-[#1b5dbf]" />
+    <div className="flex items-center gap-2 p-4 text-[13px] text-[var(--text-secondary)]">
+      <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
       {label}
     </div>
   );
@@ -320,11 +247,11 @@ export function Loading({ label = "Loading…" }: { label?: string }) {
 
 export function ErrorNote({ error }: { error: unknown }) {
   const msg =
-    (error as { message?: string })?.message ?? "Could not reach the ABM API.";
+    (error as { message?: string })?.message ?? "Could not reach the Sahayak API.";
   return (
-    <div className="m-1 border border-[#a02020] bg-[#fdeaea] px-3 py-2 text-[12px] text-[#7a1818]">
+    <div className="rounded-md border border-[#fecaca] bg-[var(--danger-soft)] px-3 py-2 text-[12px] text-[#991b1b]">
       <strong>Connection error.</strong> {msg}
-      <div className="mt-1 text-[11px] text-[#a05050]">
+      <div className="mt-1 text-[11px] text-[#b45454]">
         Check that NEXT_PUBLIC_API_URL points at the running backend.
       </div>
     </div>

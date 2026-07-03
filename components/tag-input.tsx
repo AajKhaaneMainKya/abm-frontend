@@ -48,10 +48,10 @@ export function TagInput({
 
   const counterTone =
     maxChars && draft.length > maxChars
-      ? "text-[#a02020]"
+      ? "text-[#dc2626]"
       : minChars && draft.length > 0 && draft.length < minChars
-        ? "text-[#c8a020]"
-        : "text-neutral-400";
+        ? "text-[#b45309]"
+        : "text-[var(--text-secondary)]";
 
   return (
     <div className="relative">
@@ -59,10 +59,10 @@ export function TagInput({
         {value.map((t) => {
           const err = validate ? validate(t) : null;
           const tone = !validate
-            ? "border-[#aebfdf] bg-[#e8eefb] text-[#16306b]"
+            ? "border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]"
             : err
-              ? "border-[#e2a2a2] bg-[#fdecec] text-[#7a1818]"
-              : "border-[#a6d3a6] bg-[#e9f7e9] text-[#1d5c1d]";
+              ? "border-[#fecaca] bg-[var(--danger-soft)] text-[#991b1b]"
+              : "border-[#bbf7d0] bg-[var(--success-soft)] text-[#166534]";
           return (
             <span
               key={t}

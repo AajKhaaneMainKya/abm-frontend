@@ -17,7 +17,7 @@ const STATUS_COLORS: Record<string, string> = {
   DRAFTED: "#777777",
   PENDING_APPROVAL: "#c8a020",
   APPROVED: "#2d7a2d",
-  LIVE: "#1b5dbf",
+  LIVE: "#2563eb",
   PAUSED: "#a02020",
   REJECTED: "#a02020",
 };
@@ -38,41 +38,41 @@ function CreativeTile({ c, clientId }: { c: Creative; clientId: string }) {
   const busy = approve.isPending || reject.isPending;
 
   return (
-    <div className="xp-window !rounded-md">
-      <div className="flex items-center gap-2 bg-[#d4d0c8] px-3 py-1.5">
-        <ImageIcon size={14} className="text-[#0a246a]" />
-        <span className="text-[12px] font-bold text-[#0a246a]">
+    <div className="card-flush">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5">
+        <ImageIcon size={15} className="text-[var(--accent)]" />
+        <span className="text-[13px] font-semibold text-[var(--foreground)]">
           Variant {c.variant}
         </span>
-        <XpBadge color="#1b5dbf" className="uppercase">
+        <XpBadge color="#2563eb" className="uppercase">
           {c.platform}
         </XpBadge>
-        <XpBadge color={STATUS_COLORS[c.status] ?? "#555"} className="ml-auto">
+        <XpBadge color={STATUS_COLORS[c.status] ?? "#6b7280"} className="ml-auto">
           {c.status}
         </XpBadge>
       </div>
-      <div className="space-y-2 bg-white px-4 py-3 text-[12px]">
-        <div className="text-[14px] font-bold text-neutral-800">{c.headline}</div>
-        <div className="text-neutral-600">{c.body}</div>
+      <div className="space-y-2 px-4 py-3 text-[12px]">
+        <div className="text-[14px] font-semibold text-[var(--foreground)]">{c.headline}</div>
+        <div className="text-[var(--text-secondary)]">{c.body}</div>
         {c.cta && (
-          <div className="inline-block rounded bg-[#1b5dbf] px-3 py-1 text-[12px] font-bold text-white">
+          <div className="inline-block rounded-md bg-[var(--accent)] px-3 py-1 text-[12px] font-semibold text-white">
             {c.cta}
           </div>
         )}
         {c.image_brief && (
-          <div className="xp-inset px-3 py-2 text-[11px] italic text-neutral-600">
-            <span className="font-bold not-italic text-neutral-500">Art brief: </span>
+          <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[11px] italic text-[var(--text-secondary)]">
+            <span className="font-semibold not-italic text-[var(--foreground)]">Art brief: </span>
             {c.image_brief}
           </div>
         )}
         {c.landing_page_copy && (
-          <div className="xp-inset whitespace-pre-wrap px-3 py-2 text-[11px] text-neutral-600">
-            <span className="font-bold text-neutral-500">Landing: </span>
+          <div className="whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[11px] text-[var(--text-secondary)]">
+            <span className="font-semibold text-[var(--foreground)]">Landing: </span>
             {c.landing_page_copy}
           </div>
         )}
         {pending && (
-          <div className="flex justify-end gap-2 border-t border-[#eee] pt-2">
+          <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-2">
             <XpButton variant="green" disabled={busy} onClick={() => approve.mutate()}>
               Approve
             </XpButton>
@@ -115,15 +115,15 @@ export function CreativesGrid({ clientId }: { clientId: string }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2 xp-inset px-3 py-2">
-        <Sparkles size={15} className="text-[#c8a020]" />
-        <span className="text-[12px] font-bold text-neutral-700">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5">
+        <Sparkles size={15} className="text-[var(--warning)]" />
+        <span className="text-[12px] font-semibold text-[var(--foreground)]">
           Generate ad variants:
         </span>
         <select
           value={platform}
           onChange={(e) => setPlatform(e.target.value as CreativePlatform)}
-          className="rounded-sm border border-[#7f9db9] bg-white px-2 py-1 text-[12px]"
+          className="select w-auto"
         >
           <option value="linkedin">LinkedIn</option>
           <option value="meta">Meta</option>
@@ -137,7 +137,7 @@ export function CreativesGrid({ clientId }: { clientId: string }) {
           {generate.isPending ? "Requesting…" : "Generate (A/B/C)"}
         </XpButton>
         {generate.isSuccess && (
-          <span className="text-[11px] text-[#2d7a2d]">
+          <span className="text-[11px] text-[var(--success)]">
             Queued — the Creative Agent is drafting 3 variants…
           </span>
         )}
@@ -148,7 +148,7 @@ export function CreativesGrid({ clientId }: { clientId: string }) {
       ) : error ? (
         <ErrorNote error={error} />
       ) : creatives.length === 0 ? (
-        <div className="xp-inset px-4 py-6 text-center text-[13px] text-neutral-500">
+        <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-[13px] text-[var(--text-secondary)]">
           No creatives yet. Generate a set of A/B/C variants above.
         </div>
       ) : (

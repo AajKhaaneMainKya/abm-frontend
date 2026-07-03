@@ -31,17 +31,17 @@ const TITLE_SUGGESTIONS = [
 ];
 
 const baseInput =
-  "w-full xp-inset rounded-sm px-2 py-1.5 text-[13px] text-neutral-800 outline-none focus:ring-1 focus:ring-[#316ac5]";
+  "w-full rounded border border-[var(--border)] bg-white px-2.5 py-2 text-[13px] text-[var(--foreground)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-ring)]";
 
 type FieldState = "neutral" | "error" | "warn" | "valid";
 
 function ringClass(state: FieldState): string {
   return state === "error"
-    ? "ring-1 ring-[#a02020]"
+    ? "border-[#dc2626] ring-1 ring-[#dc2626]"
     : state === "warn"
-      ? "ring-1 ring-[#c8a020]"
+      ? "border-[#d97706] ring-1 ring-[#d97706]"
       : state === "valid"
-        ? "ring-1 ring-[#2d7a2d]"
+        ? "border-[#15803d] ring-1 ring-[#15803d]"
         : "";
 }
 
@@ -61,14 +61,14 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[12px] font-bold text-neutral-700">{label}</span>
+      <span className="mb-1 block text-[12px] font-semibold text-[var(--foreground)]">{label}</span>
       {children}
       {error ? (
-        <span className="mt-0.5 block text-[11px] font-semibold text-[#a02020]">{error}</span>
+        <span className="mt-0.5 block text-[11px] font-semibold text-[#dc2626]">{error}</span>
       ) : warn ? (
-        <span className="mt-0.5 block text-[11px] text-[#9a7b10]">⚠ {warn}</span>
+        <span className="mt-0.5 block text-[11px] text-[#b45309]">⚠ {warn}</span>
       ) : hint ? (
-        <span className="mt-0.5 block text-[11px] text-neutral-400">{hint}</span>
+        <span className="mt-0.5 block text-[11px] text-[var(--text-secondary)]">{hint}</span>
       ) : null}
     </label>
   );
@@ -198,9 +198,9 @@ export default function NewClientForm({
     <div className="p-4">
       {/* Wizard progress */}
       <div className="mb-4">
-        <div className="mb-2 flex justify-between text-[11px] font-bold uppercase tracking-wide text-neutral-500">
+        <div className="mb-2 flex justify-between text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
           {STEPS.map((s, i) => (
-            <span key={s} className={i === step ? "text-[#0a246a]" : ""}>
+            <span key={s} className={i === step ? "text-[var(--accent)]" : ""}>
               {i + 1}. {s}
             </span>
           ))}
@@ -266,7 +266,7 @@ export default function NewClientForm({
         )}
 
         {step === 1 && (
-          <>
+          <div data-tour="icp-section" className="space-y-3">
             <Field label="Target industries *" error={show("industries") ? industriesErr : null}>
               <TagInput value={industries} onChange={(v) => { setIndustries(v); touch("industries"); }} placeholder="fintech, edtech, SaaS…" />
             </Field>
@@ -294,7 +294,7 @@ export default function NewClientForm({
                 validate={(p) => (p.length < 5 ? "Too vague" : p.length > 100 ? "Max 100 chars" : null)}
               />
             </Field>
-          </>
+          </div>
         )}
 
         {step === 2 && (
@@ -320,6 +320,7 @@ export default function NewClientForm({
               hint={`The AI matches this style when writing emails · ${voiceAnchor.length}/200`}
             >
               <textarea
+                data-tour="voice-anchor"
                 className={`${baseInput} h-20 resize-none ${ringClass(fieldState(show("voiceAnchor"), voiceIssue.error, null, !!voiceAnchor.trim()))}`}
                 value={voiceAnchor}
                 onChange={(e) => setVoiceAnchor(e.target.value)}
@@ -337,7 +338,7 @@ export default function NewClientForm({
               <input className={baseInput} value={campaignGoal} onChange={(e) => setCampaignGoal(e.target.value)} />
             </Field>
             <Field label={`Confidence threshold: ${threshold}`} hint={thresholdLabel(threshold)}>
-              <input type="range" min={30} max={95} value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="w-full accent-[#1b5dbf]" />
+              <input type="range" min={30} max={95} value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="w-full accent-[#0f766e]" />
               <div className="flex justify-between text-[10px] text-neutral-400">
                 <span>30 · almost all auto</span>
                 <span>70 · balanced</span>
@@ -359,8 +360,8 @@ export default function NewClientForm({
             </Field>
 
             {serverErrors.length > 0 && (
-              <div className="mt-2 border border-[#a02020] bg-[#fdeaea] px-3 py-2 text-[12px] text-[#7a1818]">
-                <div className="mb-1 flex items-center gap-1 font-bold">
+              <div className="mt-2 rounded-md border border-[#fecaca] bg-[var(--danger-soft)] px-3 py-2 text-[12px] text-[#991b1b]">
+                <div className="mb-1 flex items-center gap-1 font-semibold">
                   <AlertTriangle size={13} /> Please fix:
                 </div>
                 <ul className="list-disc pl-5">
@@ -419,19 +420,19 @@ export default function NewClientForm({
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-[#2d7a2d] text-white">
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-[var(--success)] text-white">
               <Check size={22} />
             </div>
             <div>
-              <div className="font-bold text-neutral-800">{mutation.data?.name} created.</div>
-              <div className="text-[12px] text-neutral-600">
+              <div className="font-semibold text-[var(--foreground)]">{mutation.data?.name} created.</div>
+              <div className="text-[12px] text-[var(--text-secondary)]">
                 The orchestrator will begin discovery on its next cycle.
               </div>
             </div>
           </div>
           {warnings.length > 0 && (
-            <div className="border border-[#d8b24a] bg-[#fff7d6] px-3 py-2 text-[11px] text-[#7a5c10]">
-              <div className="mb-0.5 font-bold">Created with warnings:</div>
+            <div className="rounded-md border border-[#fde68a] bg-[var(--warning-soft)] px-3 py-2 text-[11px] text-[#92400e]">
+              <div className="mb-0.5 font-semibold">Created with warnings:</div>
               <ul className="list-disc pl-4">
                 {warnings.map((w) => <li key={w}>{w}</li>)}
               </ul>

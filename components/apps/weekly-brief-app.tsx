@@ -39,18 +39,18 @@ function asList(v: unknown): string[] {
 function EmptyState() {
   const d = daysUntilMonday();
   return (
-    <div className="mx-auto my-8 w-[440px] max-w-full xp-window">
-      <div className="xp-titlebar"><span className="xp-titlebar__title">No Weekly Brief Yet</span></div>
-      <div className="space-y-3 bg-[#ece9d8] px-5 py-5">
+    <div className="card-flush mx-auto my-8 w-[440px] max-w-full">
+      <div className="card-header">No Weekly Brief Yet</div>
+      <div className="space-y-3 px-5 py-5">
         <div className="flex items-center gap-3">
-          <FileText size={34} className="text-[#1b5dbf]" />
-          <div className="text-[13px] text-neutral-700">
+          <FileText size={30} className="text-[var(--accent)]" />
+          <div className="text-[13px] text-[var(--foreground)]">
             No weekly brief yet. The Synthesis Agent runs <strong>Monday 9 AM IST</strong>.
-            <div className="mt-0.5 text-[12px] text-neutral-500">Next brief in {d} day{d === 1 ? "" : "s"}.</div>
+            <div className="mt-0.5 text-[12px] text-[var(--text-secondary)]">Next brief in {d} day{d === 1 ? "" : "s"}.</div>
           </div>
         </div>
         <div>
-          <div className="mb-1 flex justify-between text-[10px] uppercase tracking-wide text-neutral-400">
+          <div className="mb-1 flex justify-between text-[10px] uppercase tracking-wide text-[var(--text-secondary)]">
             <span>This week</span><span>Monday</span>
           </div>
           <XpProgress value={((7 - d) / 7) * 100} tone="teal" showValue />
@@ -64,46 +64,44 @@ function BriefBody({ b }: { b: WeeklyBrief }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Moved forward" value={b.accounts_moved_forward} accent="#2d7a2d" icon={<TrendingUp size={14} />} />
-        <StatCard label="Stalled" value={b.accounts_stalled} accent="#c8a020" icon={<TrendingDown size={14} />} />
-        <StatCard label="Best angle" value={<span className="text-[15px]">{b.best_angle ?? "—"}</span>} accent="#1b5dbf" icon={<ThumbsUp size={14} />} />
-        <StatCard label="Worst angle" value={<span className="text-[15px]">{b.worst_angle ?? "—"}</span>} accent="#a02020" icon={<ThumbsDown size={14} />} />
+        <StatCard label="Moved forward" value={b.accounts_moved_forward} accent="#15803d" icon={<TrendingUp size={14} />} />
+        <StatCard label="Stalled" value={b.accounts_stalled} accent="#b45309" icon={<TrendingDown size={14} />} />
+        <StatCard label="Best angle" value={<span className="text-[15px]">{b.best_angle ?? "—"}</span>} accent="#0f766e" icon={<ThumbsUp size={14} />} />
+        <StatCard label="Worst angle" value={<span className="text-[15px]">{b.worst_angle ?? "—"}</span>} accent="#dc2626" icon={<ThumbsDown size={14} />} />
       </div>
 
       {/* Orchestrator guidance — styled like a real memo the system wrote */}
-      <div className="xp-window !rounded-md">
-        <div className="bg-[#d4d0c8] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a246a]">
-          Orchestrator Guidance
-        </div>
+      <div className="card-flush">
+        <div className="card-header">Orchestrator Guidance</div>
         <div
-          className="px-6 py-5 text-[15px] leading-relaxed text-neutral-800"
+          className="px-6 py-5 text-[15px] leading-relaxed text-[var(--foreground)]"
           style={{ background: "#fbfaf4", fontFamily: "Georgia, 'Times New Roman', serif" }}
         >
           {b.orchestrator_guidance ? (
             <p className="whitespace-pre-wrap">{b.orchestrator_guidance}</p>
           ) : (
-            <p className="italic text-neutral-400">No guidance recorded for this week.</p>
+            <p className="italic text-[var(--text-secondary)]">No guidance recorded for this week.</p>
           )}
         </div>
       </div>
 
       {asList(b.icp_refinement_suggestions).length > 0 && (
-        <div className="xp-window !rounded-md">
-          <div className="bg-[#d4d0c8] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a246a]">ICP Refinement</div>
-          <ul className="list-disc space-y-1 bg-white px-8 py-3 text-[13px] text-neutral-700">
+        <div className="card-flush">
+          <div className="card-header">ICP Refinement</div>
+          <ul className="list-disc space-y-1 px-8 py-3 text-[13px] text-[var(--foreground)]">
             {asList(b.icp_refinement_suggestions).map((s, i) => <li key={i}>{s}</li>)}
           </ul>
         </div>
       )}
 
       {b.recommended_focus && (
-        <div className="border-l-4 border-[#1b5dbf] bg-[#eaf1fb] px-4 py-3">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-[#1b5dbf]">Recommended Focus</div>
-          <div className="text-[15px] font-semibold text-[#0a246a]">{b.recommended_focus}</div>
+        <div className="rounded-md border-l-4 border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--accent)]">Recommended Focus</div>
+          <div className="text-[15px] font-semibold text-[var(--foreground)]">{b.recommended_focus}</div>
         </div>
       )}
 
-      <div className="text-right text-[11px] italic text-neutral-400">
+      <div className="text-right text-[11px] italic text-[var(--text-secondary)]">
         Generated by Weekly Synthesis Agent — {fmtDate(b.created_at)}
       </div>
     </div>

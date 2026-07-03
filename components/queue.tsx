@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Mail, Image as ImageIcon, Info, Check, X, Share2, Copy, ExternalLink,
   Ban, RotateCcw, AlertTriangle,
@@ -11,20 +10,16 @@ import {
   addToDnc, redraftItem,
   type QueueSequence, type Creative,
 } from "@/lib/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { XpButton, XpProgress, XpBadge, XpTabs, XpTabPanel, XpDialog, Loading, ErrorNote } from "@/components/xp";
 
 function EmptyBox({ what, why }: { what: string; why: string }) {
   return (
-    <div className="mx-auto my-6 w-[400px] max-w-full xp-window">
-      <div className="xp-titlebar">
-        <span className="xp-titlebar__title">{what}</span>
-        <span className="xp-titlebar__btns">
-          <span className="xp-titlebar__btn xp-titlebar__btn--close"><X size={12} strokeWidth={3} /></span>
-        </span>
-      </div>
-      <div className="flex items-center gap-3 bg-[#ece9d8] px-5 py-6">
-        <Info size={34} className="text-[#1b5dbf]" />
-        <div className="text-[13px] text-neutral-700">{why}</div>
+    <div className="mx-auto my-6 flex w-[440px] max-w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-6">
+      <Info size={28} className="shrink-0 text-[var(--accent)]" />
+      <div>
+        <div className="text-[13px] font-semibold text-[var(--foreground)]">{what}</div>
+        <div className="mt-0.5 text-[13px] text-[var(--text-secondary)]">{why}</div>
       </div>
     </div>
   );
@@ -58,42 +53,42 @@ function EmailCard({ s, clientId }: { s: QueueSequence; clientId: string }) {
   };
 
   return (
-    <div className="xp-window !rounded-md">
-      <div className="flex items-center gap-2 bg-[#d4d0c8] px-3 py-1.5">
-        <Mail size={14} className="text-[#0a246a]" />
-        <span className="text-[12px] font-bold text-[#0a246a]">{s.company ?? "—"}</span>
-        <span className="text-[11px] text-neutral-500">
+    <div className="card-flush">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5">
+        <Mail size={15} className="text-[var(--accent)]" />
+        <span className="text-[13px] font-semibold text-[var(--foreground)]">{s.company ?? "—"}</span>
+        <span className="text-[12px] text-[var(--text-secondary)]">
           {s.dm_name ?? ""}{s.dm_title ? ` · ${s.dm_title}` : ""}
         </span>
-        {s.angle_used && <XpBadge color="#6a1aad" className="ml-auto">{s.angle_used}</XpBadge>}
+        {s.angle_used && <XpBadge color="#7c3aed" className="ml-auto">{s.angle_used}</XpBadge>}
       </div>
 
       {/* Email / LinkedIn sub-tabs */}
-      <div className="flex gap-1 border-b border-[#919b9c] bg-[#ece9d8] px-2 pt-1.5">
+      <div className="flex gap-1 border-b border-[var(--border)] px-3 pt-2">
         {(["email", "linkedin"] as const).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
-            className={`rounded-t-sm border border-b-0 px-3 py-1 text-[11px] font-bold ${
+            className={`-mb-px border-b-2 px-3 py-1.5 text-[12px] font-medium ${
               view === v
-                ? "border-[#919b9c] bg-white text-[#0a246a]"
-                : "border-transparent bg-[#dcd8cc] text-neutral-500"
+                ? "border-[var(--accent)] text-[var(--accent)]"
+                : "border-transparent text-[var(--text-secondary)] hover:text-[var(--foreground)]"
             }`}
           >
             <span className="inline-flex items-center gap-1">
-              {v === "email" ? <Mail size={11} /> : <Share2 size={11} />}
+              {v === "email" ? <Mail size={12} /> : <Share2 size={12} />}
               {v === "email" ? "Email" : "LinkedIn"}
             </span>
           </button>
         ))}
       </div>
 
-      <div className="space-y-3 bg-white px-4 py-3">
+      <div className="space-y-3 px-4 py-3">
         {view === "email" ? (
           <>
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-neutral-400">Subject</div>
-              <div className="text-[13px] font-semibold text-neutral-800">{s.subject ?? "—"}</div>
+              <div className="text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">Subject</div>
+              <div className="text-[13px] font-semibold text-[var(--foreground)]">{s.subject ?? "—"}</div>
             </div>
             {/*
               TODO: Replace plain textarea with TipTap rich text editor
@@ -105,24 +100,24 @@ function EmailCard({ s, clientId }: { s: QueueSequence; clientId: string }) {
               On save: strip HTML tags before sending to API (emails are plain text)
               Akshar repo reference: /vercel/app/components/TipTapEditor.tsx
             */}
-            <div className="xp-inset max-h-28 overflow-y-auto whitespace-pre-wrap px-3 py-2 font-mono text-[12px] leading-relaxed text-neutral-700">
+            <div className="max-h-28 overflow-y-auto whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-[12px] leading-relaxed text-[var(--foreground)]">
               {s.body ?? "—"}
             </div>
             {!!(s.personalization_hooks && s.personalization_hooks.length) && (
               <div className="flex flex-wrap gap-1.5">
-                {s.personalization_hooks!.map((h, i) => <XpBadge key={i} color="#008080">{h}</XpBadge>)}
+                {s.personalization_hooks!.map((h, i) => <XpBadge key={i} color="#0f766e">{h}</XpBadge>)}
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="mb-1 flex justify-between text-[11px] uppercase tracking-wide text-neutral-400">
-                  <span>Critic</span><span className="font-bold text-neutral-600">{critic.toFixed(1)}/10</span>
+                <div className="mb-1 flex justify-between text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">
+                  <span>Critic</span><span className="font-semibold text-[var(--foreground)]">{critic.toFixed(1)}/10</span>
                 </div>
                 <XpProgress value={critic * 10} tone={critic >= 7 ? "green" : "amber"} />
               </div>
               <div>
-                <div className="mb-1 flex justify-between text-[11px] uppercase tracking-wide text-neutral-400">
-                  <span>Confidence</span><span className="font-bold text-neutral-600">{Math.round(conf)}</span>
+                <div className="mb-1 flex justify-between text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">
+                  <span>Confidence</span><span className="font-semibold text-[var(--foreground)]">{Math.round(conf)}</span>
                 </div>
                 <XpProgress value={conf} tone={conf >= 70 ? "green" : "teal"} />
               </div>
@@ -130,44 +125,44 @@ function EmailCard({ s, clientId }: { s: QueueSequence; clientId: string }) {
           </>
         ) : (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-neutral-400">
+            <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">
               <span>Connection request</span>
-              <XpBadge color={li.length > 300 ? "#a02020" : "#1b5dbf"}>{li.length}/300</XpBadge>
+              <XpBadge color={li.length > 300 ? "#dc2626" : "#0f766e"}>{li.length}/300</XpBadge>
             </div>
-            <div className="xp-inset min-h-[72px] whitespace-pre-wrap px-3 py-2 text-[12px] leading-relaxed text-neutral-700">
-              {li || <span className="italic text-neutral-400">No LinkedIn message was drafted for this account.</span>}
+            <div className="min-h-[72px] whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[12px] leading-relaxed text-[var(--foreground)]">
+              {li || <span className="italic text-[var(--text-secondary)]">No LinkedIn message was drafted for this account.</span>}
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
                 <XpButton disabled={!li} onClick={copy}>
-                  <span className="inline-flex items-center gap-1"><Copy size={12} /> Copy</span>
+                  <Copy size={13} /> Copy
                 </XpButton>
                 {copied && (
-                  <span className="absolute -top-7 left-0 whitespace-nowrap rounded bg-[#2d7a2d] px-2 py-0.5 text-[11px] font-bold text-white">
+                  <span className="absolute -top-7 left-0 whitespace-nowrap rounded bg-[var(--success)] px-2 py-0.5 text-[11px] font-semibold text-white">
                     Copied! ✓
                   </span>
                 )}
               </div>
               <XpButton disabled={!s.dm_linkedin} onClick={() => s.dm_linkedin && window.open(s.dm_linkedin, "_blank")}>
-                <span className="inline-flex items-center gap-1"><ExternalLink size={12} /> Open Profile</span>
+                <ExternalLink size={13} /> Open Profile
               </XpButton>
             </div>
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-2 border-t border-[#eee] pt-2">
+        <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] pt-2">
           <button
-            className="mr-auto inline-flex items-center gap-1 rounded-sm border border-[#bbb] bg-[#e8e6df] px-2 py-1 text-[11px] font-semibold text-neutral-600 hover:bg-[#ddd]"
+            className="mr-auto inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-white px-2.5 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--surface)]"
             onClick={() => setDncOpen(true)}
             title="Add to do-not-contact"
           >
-            <Ban size={12} /> DNC
+            <Ban size={13} /> DNC
           </button>
           <XpButton variant="green" disabled={busy} onClick={() => approve.mutate()}>
-            <span className="inline-flex items-center gap-1"><Check size={13} /> Approve</span>
+            <Check size={14} /> Approve
           </XpButton>
           <XpButton variant="red" disabled={busy} onClick={() => reject.mutate()}>
-            <span className="inline-flex items-center gap-1"><X size={13} /> Reject</span>
+            <X size={14} /> Reject
           </XpButton>
         </div>
       </div>
@@ -185,7 +180,7 @@ function EmailCard({ s, clientId }: { s: QueueSequence; clientId: string }) {
           </>
         }
       >
-        <div className="text-[13px] text-neutral-700">
+        <div className="text-[13px] text-[var(--foreground)]">
           Mark <strong>{s.dm_email ?? s.company}</strong> as unsubscribed and add it to the
           do-not-contact list? This removes the account from the queue and it will never be emailed again.
         </div>
@@ -202,24 +197,22 @@ function FailedDraftCard({ s, clientId }: { s: QueueSequence; clientId: string }
   });
 
   return (
-    <div className="xp-window !rounded-md border-[#caa]">
-      <div className="flex items-center gap-2 bg-[#f0d8d8] px-3 py-1.5">
-        <AlertTriangle size={14} className="text-[#a02020]" />
-        <span className="text-[12px] font-bold text-[#7a1818]">{s.company ?? "—"}</span>
-        <span className="text-[11px] text-[#9a5050]">{s.dm_name ?? ""}</span>
-        <XpBadge color="#a02020" className="ml-auto uppercase">{s.status}</XpBadge>
+    <div className="card-flush border-[#fecaca]">
+      <div className="flex items-center gap-2 border-b border-[#fecaca] bg-[var(--danger-soft)] px-4 py-2.5">
+        <AlertTriangle size={15} className="text-[var(--danger)]" />
+        <span className="text-[13px] font-semibold text-[#991b1b]">{s.company ?? "—"}</span>
+        <span className="text-[12px] text-[#b45454]">{s.dm_name ?? ""}</span>
+        <XpBadge color="#dc2626" className="ml-auto uppercase">{s.status}</XpBadge>
       </div>
-      <div className="space-y-2 bg-white px-4 py-3">
-        {s.subject && <div className="text-[12px] font-semibold text-neutral-700">{s.subject}</div>}
-        <div className="text-[12px] italic text-[#a02020]">
+      <div className="space-y-2 px-4 py-3">
+        {s.subject && <div className="text-[12px] font-semibold text-[var(--foreground)]">{s.subject}</div>}
+        <div className="text-[12px] italic text-[var(--danger)]">
           {s.critic_feedback || "The critic flagged this draft. Re-draft to try a different angle."}
         </div>
-        <div className="flex justify-end border-t border-[#eee] pt-2">
+        <div className="flex justify-end border-t border-[var(--border)] pt-2">
           <XpButton disabled={redraft.isPending || redraft.isSuccess} onClick={() => redraft.mutate()}>
-            <span className="inline-flex items-center gap-1">
-              <RotateCcw size={12} className={redraft.isPending ? "animate-spin" : ""} />
-              {redraft.isPending ? "Re-drafting…" : redraft.isSuccess ? "Queued" : "Re-draft"}
-            </span>
+            <RotateCcw size={13} className={redraft.isPending ? "animate-spin" : ""} />
+            {redraft.isPending ? "Re-drafting…" : redraft.isSuccess ? "Queued" : "Re-draft"}
           </XpButton>
         </div>
       </div>
@@ -235,27 +228,27 @@ function CreativeCard({ c, clientId }: { c: Creative; clientId: string }) {
   const busy = approve.isPending || reject.isPending;
 
   return (
-    <div className="xp-window !rounded-md">
-      <div className="flex items-center gap-2 bg-[#d4d0c8] px-3 py-1.5">
-        <ImageIcon size={14} className="text-[#0a246a]" />
-        <span className="text-[12px] font-bold text-[#0a246a]">Variant {c.variant}</span>
-        <XpBadge color="#1b5dbf" className="uppercase">{c.platform}</XpBadge>
+    <div className="card-flush">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5">
+        <ImageIcon size={15} className="text-[var(--accent)]" />
+        <span className="text-[13px] font-semibold text-[var(--foreground)]">Variant {c.variant}</span>
+        <XpBadge color="#2563eb" className="uppercase">{c.platform}</XpBadge>
       </div>
-      <div className="space-y-2 bg-white px-4 py-3 text-[12px]">
-        <div className="text-[14px] font-bold text-neutral-800">{c.headline}</div>
-        <div className="text-neutral-600">{c.body}</div>
-        {c.cta && <div className="inline-block rounded bg-[#1b5dbf] px-3 py-1 text-[12px] font-bold text-white">{c.cta}</div>}
+      <div className="space-y-2 px-4 py-3 text-[12px]">
+        <div className="text-[14px] font-semibold text-[var(--foreground)]">{c.headline}</div>
+        <div className="text-[var(--text-secondary)]">{c.body}</div>
+        {c.cta && <div className="inline-block rounded-md bg-[var(--accent)] px-3 py-1 text-[12px] font-semibold text-white">{c.cta}</div>}
         {c.image_brief && (
-          <div className="xp-inset px-3 py-2 text-[11px] italic text-neutral-600">
-            <span className="font-bold not-italic text-neutral-500">Art brief: </span>{c.image_brief}
+          <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[11px] italic text-[var(--text-secondary)]">
+            <span className="font-semibold not-italic text-[var(--foreground)]">Art brief: </span>{c.image_brief}
           </div>
         )}
-        <div className="flex justify-end gap-2 border-t border-[#eee] pt-2">
+        <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-2">
           <XpButton variant="green" disabled={busy} onClick={() => approve.mutate()}>
-            <span className="inline-flex items-center gap-1"><Check size={13} /> Approve</span>
+            <Check size={14} /> Approve
           </XpButton>
           <XpButton variant="red" disabled={busy} onClick={() => reject.mutate()}>
-            <span className="inline-flex items-center gap-1"><X size={13} /> Reject</span>
+            <X size={14} /> Reject
           </XpButton>
         </div>
       </div>
@@ -308,7 +301,7 @@ export function QueueView({ clientId }: { clientId: string }) {
 
         {failed.length > 0 && (
           <div>
-            <div className="mb-2 flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-[#a02020]">
+            <div className="mb-2 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--danger)]">
               <AlertTriangle size={14} /> Failed Drafts — Needs Attention ({failed.length})
             </div>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

@@ -32,7 +32,7 @@ const TITLE_SUGGESTIONS = [
 ];
 
 const inputCls =
-  "w-full xp-inset rounded-sm px-2 py-1.5 text-[13px] text-neutral-800 outline-none focus:ring-1 focus:ring-[#316ac5]";
+  "w-full rounded border border-[var(--border)] bg-white px-2.5 py-2 text-[13px] text-[var(--foreground)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-ring)]";
 
 function Field({
   label,
@@ -50,18 +50,18 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className={`block rounded-sm ${changed ? "bg-[#fff7d6] -mx-1 px-1 py-0.5" : ""}`}>
-      <span className="mb-1 flex items-center gap-2 text-[12px] font-bold text-neutral-700">
+    <label className={`block rounded ${changed ? "bg-[var(--warning-soft)] -mx-1 px-1 py-0.5" : ""}`}>
+      <span className="mb-1 flex items-center gap-2 text-[12px] font-semibold text-[var(--foreground)]">
         {label}
-        {changed && <span className="text-[10px] font-normal text-[#9a7b10]">changed</span>}
+        {changed && <span className="text-[10px] font-normal text-[#b45309]">changed</span>}
       </span>
       {children}
       {error ? (
-        <span className="mt-0.5 block text-[11px] font-semibold text-[#a02020]">{error}</span>
+        <span className="mt-0.5 block text-[11px] font-semibold text-[#dc2626]">{error}</span>
       ) : warn ? (
-        <span className="mt-0.5 block text-[11px] text-[#9a7b10]">⚠ {warn}</span>
+        <span className="mt-0.5 block text-[11px] text-[#b45309]">⚠ {warn}</span>
       ) : hint ? (
-        <span className="mt-0.5 block text-[11px] text-neutral-400">{hint}</span>
+        <span className="mt-0.5 block text-[11px] text-[var(--text-secondary)]">{hint}</span>
       ) : null}
     </label>
   );
@@ -226,9 +226,9 @@ export default function ClientEditApp({
   return (
     <div className="p-4">
       <div className="mb-4">
-        <div className="mb-2 flex justify-between text-[11px] font-bold uppercase tracking-wide text-neutral-500">
+        <div className="mb-2 flex justify-between text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
           {STEPS.map((s, idx) => (
-            <span key={s} className={idx === step ? "text-[#0a246a]" : ""}>
+            <span key={s} className={idx === step ? "text-[var(--accent)]" : ""}>
               {idx + 1}. {s}
             </span>
           ))}
@@ -329,8 +329,8 @@ export default function ClientEditApp({
         {step === 3 && (
           <>
             <Field label={`Confidence threshold: ${threshold} — ${thresholdLabel(threshold)}`} changed={ch.threshold}>
-              <input type="range" min={30} max={95} value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="w-full accent-[#1b5dbf]" />
-              <div className="flex justify-between text-[10px] text-neutral-400">
+              <input type="range" min={30} max={95} value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="w-full accent-[#0f766e]" />
+              <div className="flex justify-between text-[10px] text-[var(--text-secondary)]">
                 <span>30 · almost all auto</span>
                 <span>70 · balanced</span>
                 <span>95 · manual</span>
@@ -345,8 +345,8 @@ export default function ClientEditApp({
               <input className={inputCls} type="number" value={dailyCap} onChange={(e) => setDailyCap(Number(e.target.value))} />
             </Field>
 
-            <div className="mt-3 border-t border-[#d8d4c8] pt-3">
-              <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-[#0a246a]">Review</div>
+            <div className="mt-3 border-t border-[var(--border)] pt-3">
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--foreground)]">Review</div>
               <dl className="space-y-0.5 text-[12px]">
                 {[
                   ["Name", name, ch.name],
@@ -360,17 +360,17 @@ export default function ClientEditApp({
                   ["Threshold", String(threshold), ch.threshold],
                   ["Daily cap", String(dailyCap), ch.dailyCap],
                 ].map(([k, v, changed]) => (
-                  <div key={k as string} className={`flex gap-2 rounded-sm px-1 ${changed ? "bg-[#fff7d6]" : ""}`}>
-                    <dt className="w-24 shrink-0 font-semibold text-neutral-500">{k}</dt>
-                    <dd className="text-neutral-800">{(v as string) || "—"}</dd>
+                  <div key={k as string} className={`flex gap-2 rounded px-1 ${changed ? "bg-[var(--warning-soft)]" : ""}`}>
+                    <dt className="w-24 shrink-0 font-semibold text-[var(--text-secondary)]">{k}</dt>
+                    <dd className="text-[var(--foreground)]">{(v as string) || "—"}</dd>
                   </div>
                 ))}
               </dl>
             </div>
 
             {serverErrors.length > 0 && (
-              <div className="mt-2 border border-[#a02020] bg-[#fdeaea] px-3 py-2 text-[12px] text-[#7a1818]">
-                <div className="mb-1 flex items-center gap-1 font-bold">
+              <div className="mt-2 rounded-md border border-[#fecaca] bg-[var(--danger-soft)] px-3 py-2 text-[12px] text-[#991b1b]">
+                <div className="mb-1 flex items-center gap-1 font-semibold">
                   <AlertTriangle size={13} /> Please fix:
                 </div>
                 <ul className="list-disc pl-5">
@@ -414,10 +414,10 @@ export default function ClientEditApp({
         footer={<XpButton variant="primary" onClick={() => { mutation.reset(); onDone?.(); }}>Done</XpButton>}
       >
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-full bg-[#2d7a2d] text-white"><Check size={22} /></div>
+          <div className="grid h-10 w-10 place-items-center rounded-full bg-[var(--success)] text-white"><Check size={22} /></div>
           <div>
-            <div className="font-bold text-neutral-800">Changes saved.</div>
-            <div className="text-[12px] text-neutral-600">The orchestrator will re-evaluate this client on its next cycle.</div>
+            <div className="font-semibold text-[var(--foreground)]">Changes saved.</div>
+            <div className="text-[12px] text-[var(--text-secondary)]">The orchestrator will re-evaluate this client on its next cycle.</div>
           </div>
         </div>
       </XpDialog>

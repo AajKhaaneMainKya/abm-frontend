@@ -12,7 +12,7 @@ function Bar({ pct }: { pct: number }) {
       {Array.from({ length: 10 }).map((_, i) => (
         <span
           key={i}
-          className={`h-3 w-2 ${i < filled ? "bg-[#1b5dbf]" : "bg-neutral-200"}`}
+          className={`h-3 w-2 rounded-[1px] ${i < filled ? "bg-[var(--accent)]" : "bg-[var(--surface-hover)]"}`}
         />
       ))}
     </span>
@@ -40,8 +40,8 @@ export function CostMonitor() {
   const max = Math.max(...agents.map((a) => a.cost_usd), 0.0001);
 
   return (
-    <div className="xp-window !rounded-md">
-      <div className="flex items-center gap-2 bg-[#d4d0c8] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a246a]">
+    <div className="card-flush">
+      <div className="card-header">
         {/* Live indicator — steady green dot, pulses while a refresh is in flight */}
         <span className="relative inline-flex h-2.5 w-2.5" title="Live — refreshes every 10s">
           {isFetching && (
@@ -49,13 +49,13 @@ export function CostMonitor() {
           )}
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
         </span>
-        💰 Cost Monitor{clientName ? ` — ${clientName}` : ""}
+        Cost Monitor{clientName ? ` — ${clientName}` : ""}
       </div>
-      <div className="space-y-1 bg-white p-3 font-mono text-[12px] text-neutral-700">
+      <div className="space-y-1 p-3 font-mono text-[12px] text-[var(--foreground)]">
         {isLoading ? (
-          <div className="py-2 text-center text-neutral-400">Loading costs…</div>
+          <div className="py-2 text-center text-[var(--text-secondary)]">Loading costs…</div>
         ) : agents.length === 0 ? (
-          <div className="py-2 text-center text-neutral-400">No cost data yet for this client.</div>
+          <div className="py-2 text-center text-[var(--text-secondary)]">No cost data yet for this client.</div>
         ) : (
           agents.map((a) => (
             <div key={a.agent} className="flex items-center gap-2">
@@ -67,7 +67,7 @@ export function CostMonitor() {
           ))
         )}
 
-        <div className="mt-2 space-y-0.5 border-t border-[#d8d4c8] pt-2">
+        <div className="mt-2 space-y-0.5 border-t border-[var(--border)] pt-2">
           <div className="flex justify-between">
             <span className="text-neutral-500">Today:</span>
             <span className="tabular-nums font-bold">{fmt(data?.today_usd)}</span>

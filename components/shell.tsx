@@ -1,47 +1,205 @@
 "use client";
-import DemoBanner from "@/components/demo-banner";
 
 /**
- * App shell — the OS chrome around the windowed desktop:
- *  - left sidebar (Start-menu style) opens app windows
- *  - main area = XP desktop (icons) with the live WindowLayer on top
- *  - bottom taskbar shows every open window; click to focus / minimize
+ * App shell — modern SaaS layout:
+ *  - fixed left sidebar (240px) with route-based navigation
+ *  - top bar (56px): page title, global client selector, Trigger Now, user menu
+ *  - main content area (white, scrolls)
  */
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
-import { Monitor, Cpu } from "lucide-react";
+import { UserButton, useUser, useClerk } from "@clerk/nextjs";
 import {
-  useWindowManager,
-  WindowLayer,
-  APPS,
-  DESKTOP_APPS,
-} from "@/components/window-manager";
-import { QuickActionsBar, TriggerFab } from "@/components/quick-actions";
+  LayoutDashboard,
+  Building2,
+  Inbox,
+  ScrollText,
+  FileText,
+  Globe,
+  UserPlus,
+  Play,
+  Check,
+  ChevronDown,
+  LogOut,
+  type LucideIcon,
+} from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import DemoBanner from "@/components/demo-banner";
+import { useClientList } from "@/components/client-select";
+import { useActiveClient } from "@/components/active-client";
+import { triggerOrchestrator } from "@/lib/api";
 
-// Auth/splash routes render bare — no XP desktop chrome around them.
+// Auth/splash routes render bare — no app chrome.
 const BARE_ROUTES = ["/welcome", "/sign-in", "/sign-up", "/onboarding"];
 
-function Clock() {
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    setNow(new Date());
-    const t = setInterval(() => setNow(new Date()), 1000 * 30);
-    return () => clearInterval(t);
-  }, []);
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const NAV: NavItem[] = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/clients", label: "Clients", icon: Building2 },
+  { href: "/queue", label: "Queue", icon: Inbox },
+  { href: "/decisions", label: "Decisions", icon: ScrollText },
+  { href: "/weekly-brief", label: "Weekly Brief", icon: FileText },
+  { href: "/browser-agent", label: "Browser Agent", icon: Globe },
+  { href: "/clients/new", label: "New Client", icon: UserPlus },
+];
+
+function isActive(pathname: string | null, href: string): boolean {
+  if (!pathname) return false;
+  if (href === "/") return pathname === "/";
+  if (href === "/clients") return pathname === "/clients" || (pathname.startsWith("/clients/") && pathname !== "/clients/new");
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function pageTitle(pathname: string | null): string {
+  if (!pathname) return "Sahayak";
+  if (pathname === "/") return "Dashboard";
+  if (pathname === "/clients/new") return "New Client";
+  if (pathname === "/clients") return "Clients";
+  if (pathname.startsWith("/clients/") && pathname.endsWith("/edit")) return "Edit Client";
+  if (pathname.startsWith("/clients/")) return "Client";
+  const match = NAV.find((n) => n.href !== "/" && pathname.startsWith(n.href));
+  return match?.label ?? "Sahayak";
+}
+
+function Logo() {
   return (
-    <div className="xp-clock tabular-nums">
-      {now ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--:--"}
+    <div className="flex items-center gap-2.5 px-3 py-4">
+      <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--accent)] text-[15px] font-bold text-white">
+        S
+      </span>
+      <span className="text-[16px] font-semibold tracking-tight text-[var(--foreground)]">
+        Sahayak
+      </span>
     </div>
   );
 }
 
+function Sidebar({ pathname }: { pathname: string | null }) {
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const name = user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || "Account";
+
+  return (
+    <aside className="sk-sidebar hidden md:flex">
+      <Logo />
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
+        {NAV.map(({ href, label, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            className={`nav-item ${isActive(pathname, href) ? "nav-item--active" : ""}`}
+          >
+            <Icon size={18} strokeWidth={2} />
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <div className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3">
+        <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[13px] font-medium text-[var(--foreground)]">{name}</div>
+          <button
+            type="button"
+            onClick={() => signOut({ redirectUrl: "/welcome" })}
+            className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--foreground)]"
+          >
+            <LogOut size={11} /> Sign out
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function ClientSelector() {
+  const { data: clients } = useClientList();
+  const { activeClientId, setActiveClientId } = useActiveClient();
+  const effective = activeClientId ?? clients?.[0]?.id ?? "";
+
+  if (!clients || clients.length === 0) return null;
+
+  return (
+    <div className="relative">
+      <select
+        value={effective}
+        onChange={(e) => setActiveClientId(e.target.value)}
+        className="select min-w-[180px] appearance-none pr-8"
+        aria-label="Active client"
+      >
+        {clients.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        size={15}
+        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+      />
+    </div>
+  );
+}
+
+function TriggerNowButton() {
+  const { data: clients } = useClientList();
+  const { activeClientId } = useActiveClient();
+  const effective = activeClientId ?? clients?.[0]?.id ?? "";
+  const [flash, setFlash] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const trigger = useCallback(async () => {
+    if (!effective || busy) return;
+    setBusy(true);
+    try {
+      await triggerOrchestrator(effective);
+      setFlash(true);
+      setTimeout(() => setFlash(false), 1800);
+    } catch {
+      /* surfaced on the page */
+    } finally {
+      setBusy(false);
+    }
+  }, [effective, busy]);
+
+  return (
+    <button
+      type="button"
+      onClick={trigger}
+      disabled={!effective || busy}
+      data-tour="trigger-now"
+      className={`btn ${flash ? "btn-success" : "btn-primary"}`}
+      title="Trigger the orchestrator for the active client"
+    >
+      {flash ? <Check size={15} /> : <Play size={15} />}
+      {flash ? "Triggered" : busy ? "Triggering…" : "Trigger Now"}
+    </button>
+  );
+}
+
+function TopBar({ pathname }: { pathname: string | null }) {
+  return (
+    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-[var(--border)] bg-white px-6">
+      <h1 className="text-[15px] font-semibold text-[var(--foreground)]">{pageTitle(pathname)}</h1>
+      <div className="flex flex-1 justify-center">
+        <ClientSelector />
+      </div>
+      <TriggerNowButton />
+      <div className="md:hidden">
+        <UserButton appearance={{ elements: { avatarBox: "h-7 w-7" } }} />
+      </div>
+    </header>
+  );
+}
+
 export default function Shell({ children }: { children: React.ReactNode }) {
-  const wm = useWindowManager();
-  const open = wm.windows.filter((w) => !w.closing);
   const pathname = usePathname();
 
-  // Splash / sign-in / onboarding: full-screen, no desktop chrome.
   if (BARE_ROUTES.some((p) => pathname?.startsWith(p))) {
     return <>{children}</>;
   }
@@ -49,86 +207,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen flex-col">
       <DemoBanner />
-      {/* Always-visible Quick Actions bar — client picker + Trigger + Refresh.
-          UserButton sits top-right over the bar (XP title-bar style). */}
-      <div className="relative">
-        <QuickActionsBar />
-        <div className="absolute right-3 top-1/2 z-40 -translate-y-1/2">
-          <UserButton appearance={{ elements: { avatarBox: "h-6 w-6" } }} />
+      <div className="flex min-h-0 flex-1">
+        <Sidebar pathname={pathname} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopBar pathname={pathname} />
+          <main className="sk-scroll min-h-0 flex-1 overflow-y-auto bg-white p-6">
+            {children}
+          </main>
         </div>
       </div>
-
-      <div className="relative flex min-h-0 flex-1">
-        {/* Sidebar (Start-menu style) — items open windows */}
-        <aside className="xp-sidebar z-20 hidden flex-col md:flex">
-          <div className="xp-sidebar__header flex items-center gap-2">
-            <Cpu size={18} />
-            <div className="leading-tight">
-              <div className="text-[14px]">ABM System</div>
-              <div className="text-[10px] font-normal opacity-80">Account-Based Marketing</div>
-            </div>
-          </div>
-          <nav className="flex-1 overflow-y-auto">
-            {DESKTOP_APPS.map((id) => {
-              const def = APPS[id];
-              const Icon = def.icon;
-              const isOpen = open.some((w) => w.appId === id && !w.isMinimized);
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => wm.open(id)}
-                  className={`xp-sidebar__item w-full text-left ${isOpen ? "xp-sidebar__item--active" : ""}`}
-                >
-                  <Icon size={16} />
-                  {def.title}
-                </button>
-              );
-            })}
-          </nav>
-          <div className="border-t border-[#dfe6f0] px-4 py-3 text-[10px] text-neutral-500">
-            v1.0 · Agentic ABM
-          </div>
-        </aside>
-
-        {/* Desktop (icons) + windows */}
-        <main className="xp-desktop relative min-w-0 flex-1 overflow-hidden">
-          {children}
-          <WindowLayer />
-        </main>
-      </div>
-
-      {/* Taskbar */}
-      <footer className="xp-taskbar z-30">
-        <button type="button" className="xp-start" onClick={() => wm.open("dashboard")}>
-          <Monitor size={16} />
-          start
-        </button>
-        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
-          {open.map((w) => {
-            const Icon = APPS[w.appId].icon;
-            const active = wm.activeId === w.id && !w.isMinimized;
-            return (
-              <button
-                key={w.id}
-                type="button"
-                onClick={() => wm.taskbarClick(w.id)}
-                className={`xp-taskbar__item ${active ? "xp-taskbar__item--active" : ""} ${
-                  w.isMinimized ? "opacity-75" : ""
-                }`}
-                title={w.title}
-              >
-                <Icon size={13} />
-                <span className="max-w-[150px] truncate">{w.title}</span>
-              </button>
-            );
-          })}
-        </div>
-        <Clock />
-      </footer>
-
-      {/* Floating trigger — always one click away, above the taskbar */}
-      <TriggerFab />
     </div>
   );
 }

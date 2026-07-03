@@ -33,22 +33,22 @@ export function DecisionsTable({
 
   if (decisions.length === 0) {
     return (
-      <div className="xp-inset px-4 py-6 text-center text-[13px] text-neutral-500">
+      <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-[13px] text-[var(--text-secondary)]">
         No decisions yet — run the orchestrator to generate reasoning.
       </div>
     );
   }
 
   return (
-    <div className="xp-inset overflow-hidden">
-      <table className="w-full border-collapse text-[12px]">
+    <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+      <table className="sk-table">
         <thead>
-          <tr className="bg-[#d4d0c8] text-left text-[11px] uppercase tracking-wide text-neutral-600">
-            <th className="px-2 py-1.5 font-bold">Time</th>
-            <th className="px-2 py-1.5 font-bold">Trigger</th>
-            {!compact && <th className="px-2 py-1.5 font-bold">Reasoning</th>}
-            <th className="px-2 py-1.5 font-bold">Action</th>
-            <th className="w-[150px] px-2 py-1.5 font-bold">Confidence</th>
+          <tr>
+            <th>Time</th>
+            <th>Trigger</th>
+            {!compact && <th>Reasoning</th>}
+            <th>Action</th>
+            <th className="w-[150px]">Confidence</th>
           </tr>
         </thead>
         <tbody>
@@ -56,18 +56,18 @@ export function DecisionsTable({
             const conf = confidenceOf(d);
             const isOpen = open[d.id];
             return (
-              <tr key={d.id} className="border-t border-[#e2dfd4] align-top">
-                <td className="whitespace-nowrap px-2 py-2 text-neutral-500">
+              <tr key={d.id}>
+                <td className="whitespace-nowrap text-[var(--text-secondary)]">
                   {fmtTime(d.created_at)}
                 </td>
-                <td className="px-2 py-2">
-                  <XpBadge color="#316ac5">{d.trigger}</XpBadge>
+                <td>
+                  <XpBadge color="#2563eb">{d.trigger}</XpBadge>
                 </td>
                 {!compact && (
-                  <td className="px-2 py-2">
+                  <td>
                     <button
                       onClick={() => setOpen((o) => ({ ...o, [d.id]: !o[d.id] }))}
-                      className="flex w-full items-start gap-1 text-left text-neutral-700 hover:text-[#0a246a]"
+                      className="flex w-full items-start gap-1 text-left text-[var(--foreground)] hover:text-[var(--accent)]"
                     >
                       {isOpen ? (
                         <ChevronDown size={14} className="mt-0.5 shrink-0" />
@@ -80,10 +80,10 @@ export function DecisionsTable({
                     </button>
                   </td>
                 )}
-                <td className="px-2 py-2">
-                  <span className="font-bold text-[#0a246a]">{d.action_taken}</span>
+                <td>
+                  <span className="font-semibold text-[var(--foreground)]">{d.action_taken}</span>
                 </td>
-                <td className="px-2 py-2">
+                <td>
                   <XpProgress
                     value={conf * 100}
                     tone={conf >= 0.7 ? "green" : conf >= 0.4 ? "amber" : "teal"}

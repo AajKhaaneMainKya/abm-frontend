@@ -18,7 +18,7 @@ interface FoundContact {
 
 const STATUS_META: Record<Status, { label: string; color: string }> = {
   idle: { label: "Idle", color: "#777" },
-  connecting: { label: "Connecting", color: "#1b5dbf" },
+  connecting: { label: "Connecting", color: "#2563eb" },
   searching: { label: "Searching", color: "#c8a020" },
   found: { label: "Found", color: "#2d7a2d" },
   failed: { label: "Failed", color: "#a02020" },
@@ -133,12 +133,12 @@ export default function BrowserAgentApp() {
   return (
     <div className="grid h-full grid-cols-1 gap-3 p-4 lg:grid-cols-[3fr_2fr]">
       {/* Left — live screenshot */}
-      <div className="xp-window !rounded-md">
-        <div className="flex items-center gap-2 bg-[#d4d0c8] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a246a]">
-          <Monitor size={13} /> Live Browser
+      <div className="card-flush">
+        <div className="card-header">
+          <Monitor size={14} /> Live Browser
         </div>
         {/* Account selector — pick a DISCOVERED / ENRICHED account to enrich. */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-[#aca899] bg-[#ece9d8] px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
           {clients && clients.length > 1 && (
             <Picker value={activeClientId} onChange={setPickedClient} disabled={running}>
               {clients.map((c) => (
@@ -195,35 +195,35 @@ export default function BrowserAgentApp() {
 
       {/* Right — controls */}
       <div className="flex flex-col gap-3">
-        <div className="xp-window !rounded-md">
-          <div className="flex items-center gap-2 bg-[#d4d0c8] px-3 py-1.5">
-            <Building2 size={13} className="text-[#0a246a]" />
-            <span className="text-[12px] font-bold text-[#0a246a]">
+        <div className="card-flush">
+          <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5">
+            <Building2 size={14} className="text-[var(--accent)]" />
+            <span className="text-[13px] font-semibold text-[var(--foreground)]">
               {foundContact?.company ?? "Current account"}
             </span>
             <XpBadge color={meta.color} className="ml-auto uppercase">{meta.label}</XpBadge>
           </div>
-          <div className="bg-white px-4 py-3 text-[12px]">
+          <div className="px-4 py-3 text-[12px]">
             {foundContact ? (
               <div className="space-y-0.5">
-                <div className="font-bold text-neutral-800">{foundContact.name ?? "—"}</div>
-                <div className="text-neutral-500">{foundContact.title ?? ""}</div>
+                <div className="font-semibold text-[var(--foreground)]">{foundContact.name ?? "—"}</div>
+                <div className="text-[var(--text-secondary)]">{foundContact.title ?? ""}</div>
                 {foundContact.linkedin_url && (
-                  <a href={foundContact.linkedin_url} target="_blank" rel="noreferrer" className="text-[#1b5dbf] underline">
+                  <a href={foundContact.linkedin_url} target="_blank" rel="noreferrer" className="text-[var(--accent)] underline">
                     {foundContact.linkedin_url}
                   </a>
                 )}
               </div>
             ) : (
-              <div className="text-neutral-400">Searching for a decision maker…</div>
+              <div className="text-[var(--text-secondary)]">Searching for a decision maker…</div>
             )}
           </div>
         </div>
 
         {/* Activity log */}
-        <div className="xp-window !rounded-md flex min-h-[140px] flex-1 flex-col">
-          <div className="bg-[#d4d0c8] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0a246a]">Activity</div>
-          <div ref={logRef} className="xp-scroll flex-1 overflow-y-auto bg-white px-3 py-2 font-mono text-[11px] leading-relaxed text-neutral-700">
+        <div className="card-flush flex min-h-[140px] flex-1 flex-col">
+          <div className="card-header">Activity</div>
+          <div ref={logRef} className="sk-scroll flex-1 overflow-y-auto bg-white px-3 py-2 font-mono text-[11px] leading-relaxed text-[var(--foreground)]">
             {log.length === 0 ? (
               <div className="text-neutral-400">No activity yet.</div>
             ) : (
@@ -235,7 +235,7 @@ export default function BrowserAgentApp() {
         {/* Instruction input */}
         <div className="flex gap-1.5">
           <input
-            className="flex-1 xp-inset rounded-sm bg-white px-2 py-1.5 text-[12px] outline-none focus:ring-1 focus:ring-[#316ac5]"
+            className="input flex-1"
             placeholder="Type to redirect… e.g. 'Try the team page'"
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
@@ -279,13 +279,13 @@ function Picker({
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         style={minWidth ? { minWidth } : undefined}
-        className="xp-inset appearance-none rounded-sm py-1 pl-2 pr-7 text-[12px] text-neutral-800 disabled:opacity-60"
+        className="select appearance-none py-1.5 pl-2 pr-7 text-[12px] disabled:opacity-60"
       >
         {children}
       </select>
       <ChevronDown
         size={14}
-        className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-neutral-600"
+        className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
       />
     </span>
   );
