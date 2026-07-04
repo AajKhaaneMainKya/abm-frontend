@@ -7,11 +7,12 @@ import {
 } from "lucide-react";
 import {
   getQueue, approveItem, rejectItem, approveCreative, rejectCreative,
-  addToDnc, redraftItem,
+  addToDnc, redraftItem, updateSequenceBody,
   type QueueSequence, type Creative,
 } from "@/lib/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { XpButton, XpProgress, XpBadge, XpTabs, XpTabPanel, XpDialog, Loading, ErrorNote } from "@/components/xp";
+import TipTapEditor from "@/components/tiptap-editor";
 
 function EmptyBox({ what, why }: { what: string; why: string }) {
   return (
@@ -30,10 +31,15 @@ function EmailCard({ s, clientId }: { s: QueueSequence; clientId: string }) {
   const [view, setView] = useState<"email" | "linkedin">("email");
   const [copied, setCopied] = useState(false);
   const [dncOpen, setDncOpen] = useState(false);
+  // Editable email body (plain text). Seeded from the draft; the TipTap editor
+  // returns plain text on every change, so no HTML stripping is needed on save.
+  const [body, setBody] = useState(s.body ?? "");
+  const dirty = body.trim() !== (s.body ?? "").trim();
   const invalidate = () => qc.invalidateQueries({ queryKey: ["queue", clientId] });
 
   const approve = useMutation({ mutationFn: () => approveItem(clientId, s.id), onSuccess: invalidate });
   const reject = useMutation({ mutationFn: () => rejectItem(clientId, s.id), onSuccess: invalidate });
+  const saveBody = useMutation({ mutationFn: () => updateSequenceBody(clientId, s.id, body), onSuccess: invalidate });
   const dnc = useMutation({
     mutationFn: () => addToDnc(clientId, s.account_id ?? ""),
     onSuccess: () => { setDncOpen(false); invalidate(); },
@@ -90,18 +96,24 @@ function EmailCard({ s, clientId }: { s: QueueSequence; clientId: string }) {
               <div className="text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">Subject</div>
               <div className="text-[13px] font-semibold text-[var(--foreground)]">{s.subject ?? "—"}</div>
             </div>
-            {/*
-              TODO: Replace plain textarea with TipTap rich text editor
-              TipTap gives: bold, italic, inline formatting, word count
-              Install: npm install @tiptap/react @tiptap/pm @tiptap/starter-kit
-              Pattern to follow: Akshar's TipTap integration in claude-writing-agent
-              Gate: show TipTap only for email body (not LinkedIn message —
-                LinkedIn is plain text only, 300 char limit)
-              On save: strip HTML tags before sending to API (emails are plain text)
-              Akshar repo reference: /vercel/app/components/TipTapEditor.tsx
-            */}
-            <div className="max-h-28 overflow-y-auto whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-[12px] leading-relaxed text-[var(--foreground)]">
-              {s.body ?? "—"}
+            {/* Editable email body — TipTap rich-text editor. onChange returns
+                plain text (HTML stripped), so it's send-ready as-is. The LinkedIn
+                message below stays a plain read-only field (300-char, plain text). */}
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <div className="text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">Body</div>
+                {dirty && (
+                  <XpButton
+                    variant="primary"
+                    className="!px-2.5 !py-1 !text-[11px]"
+                    disabled={saveBody.isPending}
+                    onClick={() => saveBody.mutate()}
+                  >
+                    {saveBody.isPending ? "Saving…" : saveBody.isError ? "Retry save" : "Save edits"}
+                  </XpButton>
+                )}
+              </div>
+              <TipTapEditor content={s.body ?? ""} onChange={setBody} maxWords={120} />
             </div>
             {!!(s.personalization_hooks && s.personalization_hooks.length) && (
               <div className="flex flex-wrap gap-1.5">

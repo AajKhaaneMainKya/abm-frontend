@@ -330,6 +330,16 @@ export async function rejectItem(clientId: string, seqId: string) {
   return data;
 }
 
+/**
+ * Persist an edited email body (plain text) for a queued sequence.
+ * Requires a backend PATCH /api/clients/{id}/queue/{seq_id} route — see note in
+ * components/queue.tsx where the TipTap editor calls this.
+ */
+export async function updateSequenceBody(clientId: string, seqId: string, body: string) {
+  const { data } = await api.patch(`/api/clients/${clientId}/queue/${seqId}`, { body });
+  return data;
+}
+
 /* ------------------------------------------------------------------ */
 /* Creatives                                                          */
 /* ------------------------------------------------------------------ */
