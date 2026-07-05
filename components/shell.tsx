@@ -2,11 +2,12 @@
 
 /**
  * App shell — modern SaaS layout:
- *  - fixed left sidebar (240px) with route-based navigation
+ *  - fixed left sidebar (240px) with route-based navigation (ABM or Job Search)
  *  - top bar (56px): page title, global client selector, Trigger Now, user menu
  *  - main content area (white, scrolls)
+ *  - first-run mode selector + persistent sidebar mode switcher
  */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton, useUser, useClerk } from "@clerk/nextjs";
@@ -18,6 +19,9 @@ import {
   FileText,
   Globe,
   UserPlus,
+  MessageSquare,
+  Network,
+  CheckSquare,
   Play,
   Check,
   ChevronDown,
@@ -26,9 +30,12 @@ import {
 } from "lucide-react";
 import DemoBanner from "@/components/demo-banner";
 import OnboardingTour from "@/components/onboarding-tour";
+import ModeSelector, { useMode } from "./mode-selector";
 import { useClientList } from "@/components/client-select";
 import { useActiveClient } from "@/components/active-client";
 import { triggerOrchestrator } from "@/lib/api";
+
+type Mode = "abm" | "job_search";
 
 // Auth/splash routes render bare — no app chrome.
 const BARE_ROUTES = ["/welcome", "/sign-in", "/sign-up", "/onboarding"];
@@ -40,7 +47,7 @@ interface NavItem {
   tour?: string;
 }
 
-const NAV: NavItem[] = [
+const ABM_NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clients", label: "Clients", icon: Building2 },
   { href: "/queue", label: "Queue", icon: Inbox, tour: "nav-queue" },
@@ -50,22 +57,34 @@ const NAV: NavItem[] = [
   { href: "/clients/new", label: "New Client", icon: UserPlus, tour: "nav-new-client" },
 ];
 
-function isActive(pathname: string | null, href: string): boolean {
-  if (!pathname) return false;
-  if (href === "/") return pathname === "/";
-  if (href === "/clients") return pathname === "/clients" || (pathname.startsWith("/clients/") && pathname !== "/clients/new");
-  return pathname === href || pathname.startsWith(`${href}/`);
+const JOB_NAV: NavItem[] = [
+  { href: "/job-search", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/job-search/companies", label: "Companies", icon: Building2 },
+  { href: "/job-search/queue", label: "Outreach Queue", icon: Inbox },
+  { href: "/job-search/replies", label: "Replies", icon: MessageSquare },
+  { href: "/job-search/graph", label: "Mind Map", icon: Network },
+  { href: "/job-search/actions", label: "Actions", icon: CheckSquare },
+];
+
+/** The single best-matching nav href for the current path (longest wins). */
+function bestMatch(pathname: string | null, nav: NavItem[]): string | null {
+  if (!pathname) return null;
+  let best: string | null = null;
+  for (const { href } of nav) {
+    const hit = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+    if (hit && (best === null || href.length > best.length)) best = href;
+  }
+  return best;
 }
 
-function pageTitle(pathname: string | null): string {
+function pageTitle(pathname: string | null, nav: NavItem[]): string {
   if (!pathname) return "Sahayak";
-  if (pathname === "/") return "Dashboard";
+  // Friendly titles for ABM client detail/edit (no dedicated nav entries).
   if (pathname === "/clients/new") return "New Client";
-  if (pathname === "/clients") return "Clients";
   if (pathname.startsWith("/clients/") && pathname.endsWith("/edit")) return "Edit Client";
-  if (pathname.startsWith("/clients/")) return "Client";
-  const match = NAV.find((n) => n.href !== "/" && pathname.startsWith(n.href));
-  return match?.label ?? "Sahayak";
+  if (pathname.startsWith("/clients/") && pathname !== "/clients") return "Client";
+  const best = bestMatch(pathname, nav);
+  return nav.find((n) => n.href === best)?.label ?? "Sahayak";
 }
 
 function Logo() {
@@ -81,27 +100,69 @@ function Logo() {
   );
 }
 
-function Sidebar({ pathname }: { pathname: string | null }) {
+function Sidebar({
+  pathname,
+  nav,
+  mode,
+  setMode,
+}: {
+  pathname: string | null;
+  nav: NavItem[];
+  mode: Mode;
+  setMode: (m: Mode) => void;
+}) {
   const { user } = useUser();
   const { signOut } = useClerk();
   const name = user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || "Account";
+  const active = bestMatch(pathname, nav);
 
   return (
     <aside className="sk-sidebar hidden md:flex">
       <Logo />
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
-        {NAV.map(({ href, label, icon: Icon, tour }) => (
+        {nav.map(({ href, label, icon: Icon, tour }) => (
           <Link
             key={href}
             href={href}
             data-tour={tour}
-            className={`nav-item ${isActive(pathname, href) ? "nav-item--active" : ""}`}
+            className={`nav-item ${href === active ? "nav-item--active" : ""}`}
           >
             <Icon size={18} strokeWidth={2} />
             {label}
           </Link>
         ))}
       </nav>
+
+      {/* Mode switcher */}
+      <div style={{ padding: "12px 16px", borderTop: "1px solid #e5e7eb" }}>
+        <div style={{ fontSize: "11px", color: "#9ca3af", marginBottom: "6px",
+                      textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          Mode
+        </div>
+        <div style={{ display: "flex", gap: "6px" }}>
+          {(["abm", "job_search"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              style={{
+                flex: 1,
+                padding: "6px 8px",
+                borderRadius: "6px",
+                border: "1px solid",
+                borderColor: mode === m ? "#0f766e" : "#e5e7eb",
+                background: mode === m ? "#f0fdfa" : "#ffffff",
+                color: mode === m ? "#0f766e" : "#6b7280",
+                fontSize: "11px",
+                fontWeight: mode === m ? "600" : "400",
+                cursor: "pointer",
+              }}
+            >
+              {m === "abm" ? "🎯 ABM" : "💼 Jobs"}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3">
         <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
         <div className="min-w-0 flex-1">
@@ -184,10 +245,10 @@ function TriggerNowButton() {
   );
 }
 
-function TopBar({ pathname }: { pathname: string | null }) {
+function TopBar({ pathname, nav }: { pathname: string | null; nav: NavItem[] }) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b border-[var(--border)] bg-white px-6">
-      <h1 className="text-[15px] font-semibold text-[var(--foreground)]">{pageTitle(pathname)}</h1>
+      <h1 className="text-[15px] font-semibold text-[var(--foreground)]">{pageTitle(pathname, nav)}</h1>
       <div className="flex flex-1 justify-center">
         <ClientSelector />
       </div>
@@ -201,6 +262,24 @@ function TopBar({ pathname }: { pathname: string | null }) {
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { mode, setMode } = useMode();
+  const [showSelector, setShowSelector] = useState(false);
+
+  useEffect(() => {
+    const skip = localStorage.getItem("sahayak_mode_skip");
+    const stored = localStorage.getItem("sahayak_mode");
+    if (!skip && !stored) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- first-run check reads localStorage after mount
+      setShowSelector(true);
+    }
+  }, []);
+
+  const handleModeSelect = (m: Mode) => {
+    setMode(m);
+    setShowSelector(false);
+  };
+
+  const nav = mode === "job_search" ? JOB_NAV : ABM_NAV;
 
   // Bare (no app chrome): auth/splash routes and the full-screen launching page.
   if (BARE_ROUTES.some((p) => pathname?.startsWith(p)) || pathname?.endsWith("/launching")) {
@@ -211,15 +290,16 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen flex-col">
       <DemoBanner />
       <div className="flex min-h-0 flex-1">
-        <Sidebar pathname={pathname} />
+        <Sidebar pathname={pathname} nav={nav} mode={mode} setMode={setMode} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar pathname={pathname} />
+          <TopBar pathname={pathname} nav={nav} />
           <main className="sk-scroll min-h-0 flex-1 overflow-y-auto bg-white p-6">
             {children}
           </main>
         </div>
       </div>
       <OnboardingTour />
+      {showSelector && <ModeSelector onSelect={handleModeSelect} />}
     </div>
   );
 }
