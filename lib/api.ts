@@ -523,6 +523,13 @@ export async function redraftItem(clientId: string, seqId: string) {
 /* Accounts + Browser Agent (live enrichment)                         */
 /* ------------------------------------------------------------------ */
 
+export interface BeliefState {
+  angles_tried?: string[];
+  touch_history?: { angle?: string; at?: string }[];
+  recommended_next_angle?: string | null;
+  [key: string]: unknown;
+}
+
 export interface Account {
   id: string;
   company: string;
@@ -532,7 +539,78 @@ export interface Account {
   dm_name: string | null;
   dm_title: string | null;
   dm_linkedin: string | null;
+  dm_email?: string | null;
   intent_score: number | null;
+  industry?: string | null;
+  size_estimate?: number | null;
+  hq_location?: string | null;
+  description?: string | null;
+  icp_match_score?: number | null;
+  touch_count?: number | null;
+  last_touched_at?: string | null;
+  belief_state?: BeliefState | null;
+  engagement_score?: number | null;
+  angles_tried?: string[] | null;
+  created_at?: string;
+}
+
+/** One email touch for a single account — company detail expansion + mind map. */
+export interface AccountSequence {
+  id: string;
+  subject: string | null;
+  body: string | null;
+  angle_used: string | null;
+  status: string;
+  critic_score: number | null;
+  sent_at: string | null;
+  opened_at: string | null;
+  replied_at: string | null;
+  reply_text: string | null;
+  reply_sentiment: string | null;
+  reply_intent: string | null;
+  touch_number_in_sequence: number | null;
+  created_at: string;
+}
+
+export async function getAccountSequences(
+  clientId: string,
+  accountId: string,
+): Promise<AccountSequence[]> {
+  const { data } = await api.get<{ sequences: AccountSequence[] }>(
+    `/api/clients/${clientId}/accounts/${accountId}/sequences`,
+  );
+  return data.sequences ?? [];
+}
+
+/** A sequence with a reply — Job Search "Replies" page + dashboard needs-attention. */
+export interface Reply {
+  id: string;
+  account_id: string;
+  subject: string | null;
+  reply_text: string;
+  reply_sentiment: string | null;
+  reply_intent: string | null;
+  reply_next_action: string | null;
+  reply_reasoning: string | null;
+  follow_up_due_at: string | null;
+  replied_at: string | null;
+  created_at: string;
+  company: string | null;
+  dm_name: string | null;
+  dm_title: string | null;
+  needs_follow_up: boolean;
+}
+
+export async function getReplies(clientId: string): Promise<Reply[]> {
+  const { data } = await api.get<{ replies: Reply[] }>(`/api/clients/${clientId}/replies`);
+  return data.replies ?? [];
+}
+
+export async function sendActionsToTelegram(
+  clientId: string,
+): Promise<{ sent: boolean; action_count: number; message: string }> {
+  const { data } = await api.post(`/api/clients/${clientId}/send-actions-to-telegram`);
+  return data;
 }
 
 /** List accounts, optionally filtered to specific states (e.g. DISCOVERED,ENRICHED). */
