@@ -17,6 +17,7 @@ export default function DemoBanner({ mode }: { mode: 'abm' | 'job_search' }) {
     job_paused: false,
   })
   const [loading, setLoading] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
   const isAdmin = user?.id === ADMIN_CLERK_ID
   const isPaused = mode === 'job_search' ? status.job_paused : status.abm_paused
@@ -57,6 +58,11 @@ export default function DemoBanner({ mode }: { mode: 'abm' | 'job_search' }) {
         abm_paused: data.abm_paused ?? prev.abm_paused,
         job_paused: data.job_paused ?? prev.job_paused,
       }))
+
+      const pause = !currentPaused
+      const label = type === 'abm' ? 'ABM campaigns' : 'Job search'
+      setToast(pause ? `⏸ ${label} paused` : `▶ ${label} resumed`)
+      setTimeout(() => setToast(null), 3000)
     } catch(e) {
       console.error(e)
     } finally {
@@ -84,6 +90,7 @@ export default function DemoBanner({ mode }: { mode: 'abm' | 'job_search' }) {
 
   // Admin view — always visible, shows both controls
   return (
+    <>
     <div style={{
       width: '100%',
       background: '#f8fafc',
@@ -160,5 +167,24 @@ export default function DemoBanner({ mode }: { mode: 'abm' | 'job_search' }) {
           : 'All agents running'}
       </span>
     </div>
+    {toast && (
+      <div style={{
+        position: 'fixed',
+        bottom: '24px',
+        right: '24px',
+        background: '#111827',
+        color: '#ffffff',
+        padding: '12px 20px',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: '500',
+        zIndex: 9999,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        animation: 'fadeIn 0.2s ease',
+      }}>
+        {toast}
+      </div>
+    )}
+    </>
   )
 }
