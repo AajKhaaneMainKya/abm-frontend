@@ -245,12 +245,13 @@ function TriggerNowButton() {
   );
 }
 
-function TopBar({ pathname, nav }: { pathname: string | null; nav: NavItem[] }) {
+function TopBar({ pathname, nav, mode }: { pathname: string | null; nav: NavItem[]; mode: Mode }) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b border-[var(--border)] bg-white px-6">
       <h1 className="text-[15px] font-semibold text-[var(--foreground)]">{pageTitle(pathname, nav)}</h1>
       <div className="flex flex-1 justify-center">
-        <ClientSelector />
+        {/* Client selector is ABM-only — job search has no per-client concept. */}
+        {mode === "abm" && <ClientSelector />}
       </div>
       <TriggerNowButton />
       <div className="md:hidden">
@@ -292,7 +293,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-0 flex-1">
         <Sidebar pathname={pathname} nav={nav} mode={mode} setMode={setMode} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar pathname={pathname} nav={nav} />
+          <TopBar pathname={pathname} nav={nav} mode={mode} />
           <main className="sk-scroll min-h-0 flex-1 overflow-y-auto bg-white p-6">
             {children}
           </main>
