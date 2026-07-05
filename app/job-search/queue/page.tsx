@@ -10,6 +10,7 @@ import {
   rejectItem,
   redraftItem,
   updateSequenceBody,
+  getMatchCard,
   type QueueSequence,
   type Account,
 } from "@/lib/api";
@@ -19,10 +20,10 @@ import { JOB_SEARCH_CLIENT_ID } from "@/lib/job-search";
 
 const CLIENT_ID = JOB_SEARCH_CLIENT_ID;
 
-/** Why this company was targeted — pulled from belief_state / the account description. */
-function MatchCard({ account }: { account?: Account }) {
-  if (!account) return null;
-
+/** Fallback bullets from belief_state / the account description — used when the
+ * user has no context graph yet (no resume uploaded) or the match-card call fails. */
+function fallbackBullets(account?: Account): string[] {
+  if (!account) return [];
   const bullets: string[] = [];
   if (account.industry) bullets.push(`${account.industry} company matching your ICP`);
   if (account.icp_match_score) bullets.push(`${Math.round(account.icp_match_score * 100)}% ICP match score`);
@@ -32,6 +33,28 @@ function MatchCard({ account }: { account?: Account }) {
     bullets.push(account.description.slice(0, 140));
   }
   if (bullets.length === 0) bullets.push("Matches your target company profile.");
+  return bullets;
+}
+
+/** Why this company was targeted. Prefers the context-graph-driven match card
+ * (GET /api/clients/{id}/queue/{seq_id}/match-card — agents/context_graph.py's
+ * select_highlights + deaify_highlights against the user's uploaded resume);
+ * falls back to the belief_state/description heuristic when the user has no
+ * context graph yet or the call fails. */
+function MatchCard({ seqId, account }: { seqId: string; account?: Account }) {
+  const matchQ = useQuery({
+    queryKey: ["js-match-card", CLIENT_ID, seqId],
+    queryFn: () => getMatchCard(CLIENT_ID, seqId),
+    retry: false,
+  });
+
+  const highlights = matchQ.data?.highlights ?? [];
+  const bullets =
+    highlights.length > 0
+      ? highlights.map((h) => `${h.role || h.name} at ${h.company} — ${h.achievement || h.proof}`)
+      : fallbackBullets(account);
+
+  if (bullets.length === 0) return null;
 
   return (
     <div
@@ -44,7 +67,7 @@ function MatchCard({ account }: { account?: Account }) {
       <ul className="space-y-1 text-[12px] text-[#115e59]">
         {bullets.slice(0, 3).map((b, i) => (
           <li key={i} className="flex gap-1.5">
-            <span>•</span>
+            <span>✓</span>
             <span>{b}</span>
           </li>
         ))}
@@ -102,7 +125,7 @@ function QueueCard({ s, account }: { s: QueueSequence; account?: Account }) {
           <TipTapEditor content={s.body ?? ""} onChange={setBody} maxWords={150} />
         </div>
 
-        <MatchCard account={account} />
+        <MatchCard seqId={s.id} account={account} />
 
         <div className="mt-1">
           <div className="mb-1 flex justify-between text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">

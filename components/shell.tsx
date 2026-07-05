@@ -26,6 +26,7 @@ import {
   Check,
   ChevronDown,
   LogOut,
+  User,
   type LucideIcon,
 } from "lucide-react";
 import DemoBanner from "@/components/demo-banner";
@@ -64,6 +65,7 @@ const JOB_NAV: NavItem[] = [
   { href: "/job-search/replies", label: "Replies", icon: MessageSquare },
   { href: "/job-search/graph", label: "Mind Map", icon: Network },
   { href: "/job-search/actions", label: "Actions", icon: CheckSquare },
+  { href: "/job-search/profile", label: "My Profile", icon: User },
 ];
 
 /** The single best-matching nav href for the current path (longest wins). */

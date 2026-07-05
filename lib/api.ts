@@ -650,3 +650,107 @@ export function browserWsUrl(sessionId: string): string {
   const proto = API_URL.startsWith("https") ? "wss" : "ws";
   return `${proto}://${API_HOST}/ws/browser/${sessionId}`;
 }
+
+/* ------------------------------------------------------------------ */
+/* Job Search profile — resume upload + context graph                 */
+/* ------------------------------------------------------------------ */
+
+export interface ContextGraphExperience {
+  company: string;
+  role: string;
+  industry?: string;
+  duration?: string;
+  achievements?: string[];
+  skills?: string[];
+  transferable_to?: string[];
+  recency_weight?: number;
+}
+
+export interface ContextGraphBuild {
+  name: string;
+  type?: string;
+  stack?: string[];
+  proof?: string;
+  demonstrates?: string[];
+}
+
+export interface ContextGraphEducation {
+  institution: string;
+  degree?: string;
+  year?: string;
+}
+
+export interface ContextGraph {
+  experiences?: ContextGraphExperience[];
+  builds?: ContextGraphBuild[];
+  education?: ContextGraphEducation[];
+  skills?: string[];
+  seeking?: {
+    roles?: string[];
+    industries?: string[];
+    stage?: string[];
+    size?: { min?: number; max?: number };
+  };
+}
+
+export interface UserProfile {
+  context_graph: ContextGraph;
+  resumes: { filename: string }[];
+  voice_anchor: string | null;
+  updated_at?: string | null;
+}
+
+export async function getProfile(): Promise<UserProfile> {
+  const { data } = await api.get<UserProfile>("/api/profile");
+  return data;
+}
+
+/** Uses raw fetch, not the shared `api` instance — axios would JSON-stringify
+ * FormData because the instance's default Content-Type is application/json,
+ * clobbering the multipart boundary the backend needs to parse the file. */
+export async function uploadResume(file: File): Promise<UserProfile> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const token = await getClerkToken();
+  const res = await fetch(`${API_URL}/api/profile/resume`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Upload failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function updateVoiceAnchor(voiceAnchor: string): Promise<UserProfile> {
+  const { data } = await api.patch<UserProfile>("/api/profile", { voice_anchor: voiceAnchor });
+  return data;
+}
+
+/* ------------------------------------------------------------------ */
+/* Job Search queue — "Why this company" match card                   */
+/* ------------------------------------------------------------------ */
+
+export interface MatchHighlight {
+  type: "experience" | "build";
+  company?: string;
+  role?: string;
+  name?: string;
+  achievement?: string;
+  proof?: string;
+  score: number;
+}
+
+export interface MatchCard {
+  highlights: MatchHighlight[];
+  deaified_text: string;
+}
+
+export async function getMatchCard(clientId: string, seqId: string): Promise<MatchCard> {
+  const { data } = await api.get<MatchCard>(
+    `/api/clients/${clientId}/queue/${seqId}/match-card`,
+  );
+  return data;
+}
