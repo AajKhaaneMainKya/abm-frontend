@@ -16,6 +16,13 @@ const CLIENT_TYPE_LABEL: Record<string, string> = {
   job_search: "Job Search",
 };
 
+const PLAN_ROWS: { key: string; label: string; color: string }[] = [
+  { key: "trial", label: "Trial", color: "#b45309" },
+  { key: "pro", label: "Pro", color: "#0f766e" },
+  { key: "free", label: "Free", color: "#6b7280" },
+  { key: "cancelled", label: "Cancelled", color: "#b91c1c" },
+];
+
 export default function AdminConsolePage() {
   const { data, isLoading, error, dataUpdatedAt } = useQuery({
     queryKey: ["admin-platform"],
@@ -57,6 +64,13 @@ export default function AdminConsolePage() {
           accent="#b45309"
         />
         <StatCard label="Matches Made" value={data.matches_made} accent="#7c3aed" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Resumes Uploaded" value={data.resumes_uploaded} accent="#0f766e" />
+        <StatCard label="Verified Hiring Managers" value={data.verified_hiring_managers} accent="#15803d" />
+        <StatCard label="New Users (7 days)" value={data.new_users_7d} accent="#2563eb" />
+        <StatCard label="Matched Candidates" value={data.matched_candidates} accent="#7c3aed" />
       </div>
 
       <div className="card-flush">
@@ -133,6 +147,42 @@ export default function AdminConsolePage() {
             <div className="flex items-center justify-between">
               <span className="text-[var(--foreground)]">Total</span>
               <span className="text-[var(--text-secondary)]">{data.hiring_briefs.total ?? 0}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="card-flush">
+          <div className="card-header">Plan Breakdown</div>
+          <div className="space-y-2 p-4 text-[13px]">
+            {PLAN_ROWS.map(({ key, label, color }) => (
+              <div key={key} className="flex items-center justify-between">
+                <XpBadge color={color}>{label}</XpBadge>
+                <span className="text-[var(--text-secondary)]">{data.plans[key] ?? 0} users</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card-flush">
+          <div className="card-header">Marketplace Health</div>
+          <div className="space-y-2 p-4 text-[13px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--foreground)]">Briefs posted</span>
+              <span className="text-[var(--text-secondary)]">{data.hiring_briefs.total ?? 0}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--foreground)]">Briefs with matches</span>
+              <span className="text-[var(--text-secondary)]">{data.briefs_with_matches}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--foreground)]">Total matches</span>
+              <span className="text-[var(--text-secondary)]">{data.matches_made}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--foreground)]">Profile unlocks</span>
+              <span className="text-[var(--text-secondary)]">{data.profile_unlocks}</span>
             </div>
           </div>
         </div>

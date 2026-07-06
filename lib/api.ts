@@ -1076,6 +1076,13 @@ export interface PlatformOverview {
   hiring_briefs: { total: number; active: number; filled: number };
   matches_made: number;
   all_users: PlatformOverviewUser[];
+  resumes_uploaded: number;
+  verified_hiring_managers: number;
+  plans: Record<string, number>;
+  new_users_7d: number;
+  matched_candidates: number;
+  briefs_with_matches: number;
+  profile_unlocks: number;
 }
 
 export async function getPlatformOverview(): Promise<PlatformOverview> {
