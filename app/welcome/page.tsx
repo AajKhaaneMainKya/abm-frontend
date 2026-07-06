@@ -27,8 +27,13 @@ export default function WelcomePage() {
       </div>
 
       {/* Tagline */}
-      <p style={{color:'rgba(255,255,255,0.5)', fontSize:'15px', margin:'0 0 32px 0', textAlign:'center'}}>
-        Your outbound motion. Automated.
+      <p style={{color:'rgba(255,255,255,0.85)', fontSize:'15px', margin:'0 0 8px 0', textAlign:'center', fontWeight:'600'}}>
+        The hiring layer for Indian startups.
+      </p>
+
+      {/* Subtext */}
+      <p style={{color:'rgba(255,255,255,0.5)', fontSize:'14px', margin:'0 0 32px 0', textAlign:'center', maxWidth:'420px'}}>
+        Post what you need. Get matched candidates who&apos;ve actually built what you&apos;re looking for.
       </p>
 
       {/* Sign in card */}
@@ -84,16 +89,19 @@ export default function WelcomePage() {
         maxWidth:'600px',
       }}>
         {[
-          {icon:'🔍', text:'Finds companies matching your ICP'},
-          {icon:'✉️', text:'Writes emails that don\'t sound like AI'},
-          {icon:'🧠', text:'Learns from every reply'},
+          {icon:'🔍', text:'Matched by what you\'ve built', sub:'Context graph traversal — not keyword matching'},
+          {icon:'✓', text:'Verified company emails only', sub:'Domain verification before any brief goes live'},
+          {icon:'💬', text:'Both sides of the table', sub:'Candidates find roles. Founders find builders.'},
         ].map((f, i) => (
           <div key={i} style={{
-            display:'flex', alignItems:'center', gap:'8px',
-            color:'rgba(255,255,255,0.35)', fontSize:'13px',
+            display:'flex', alignItems:'flex-start', gap:'8px',
+            maxWidth:'180px',
           }}>
-            <span>{f.icon}</span>
-            <span>{f.text}</span>
+            <span style={{fontSize:'15px'}}>{f.icon}</span>
+            <div style={{display:'flex', flexDirection:'column', gap:'2px'}}>
+              <span style={{color:'rgba(255,255,255,0.65)', fontSize:'13px', fontWeight:'600'}}>{f.text}</span>
+              <span style={{color:'rgba(255,255,255,0.35)', fontSize:'12px'}}>{f.sub}</span>
+            </div>
           </div>
         ))}
       </div>
