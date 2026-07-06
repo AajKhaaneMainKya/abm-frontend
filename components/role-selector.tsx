@@ -3,24 +3,20 @@
 /**
  * First-login role picker. Shown once — whoever renders this component
  * (see components/shell.tsx) already checked that the user has no
- * user_role in the DB yet. Selection is permanent — there is no "don't ask
- * again"; the point of moving this into the DB is that it's not a
- * preference anymore.
+ * user_role in the DB yet. The role itself can be changed later from the
+ * sidebar switcher, but that's a settings action, not this first-run flow.
  *
  * Two steps:
  *   1. Role selection (all users) — saves immediately for abm/candidate.
- *   2. Company setup (hiring_manager only) — also creates an organisation.
+ *   2. Company setup (hiring_manager only, skippable) — also creates an
+ *      organisation if filled in.
  *
- * Calls onComplete() once the role (and org, if applicable) is saved; the
- * caller reloads so the shell re-fetches /api/users/me and renders the
- * right nav.
+ * On success, hard-navigates to the role's dashboard (not router.push —
+ * this needs a full reload so the shell re-fetches /api/users/me and
+ * renders the right nav for the new role).
  */
 import { useState } from "react";
 import { setUserRole, createOrg, type UserRole } from "@/lib/api";
-
-interface RoleSelectorProps {
-  onComplete: () => void;
-}
 
 interface OrgFormState {
   name: string;
@@ -63,7 +59,7 @@ function Logo() {
   );
 }
 
-export default function RoleSelector({ onComplete }: RoleSelectorProps) {
+export default function RoleSelector() {
   const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +93,8 @@ export default function RoleSelector({ onComplete }: RoleSelectorProps) {
         });
       }
 
-      onComplete();
+      const target = role === "hiring_manager" ? "/hiring" : role === "candidate" ? "/job-search" : "/";
+      window.location.assign(target);
     } catch {
       setError("Could not save — please try again.");
       setLoading(false);
@@ -140,7 +137,7 @@ export default function RoleSelector({ onComplete }: RoleSelectorProps) {
             {error && <p className="mt-3 text-[13px] text-red-600">{error}</p>}
 
             <p className="mt-4 text-center text-[12px] text-[var(--text-secondary)]">
-              You can contact support to change this later.
+              You can switch modes anytime from the sidebar.
             </p>
           </>
         ) : (
@@ -227,6 +224,15 @@ export default function RoleSelector({ onComplete }: RoleSelectorProps) {
               className="btn btn-primary w-full"
             >
               {loading ? "Setting up…" : "Get started →"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => saveRole("hiring_manager")}
+              disabled={loading}
+              className="mt-2 w-full text-center text-[13px] text-[var(--text-secondary)] hover:text-[var(--foreground)]"
+            >
+              Skip for now →
             </button>
 
             <div className="mt-4 flex justify-center gap-1.5">

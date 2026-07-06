@@ -1003,3 +1003,39 @@ export async function respondToNotification(
   );
   return data;
 }
+
+/* ------------------------------------------------------------------ */
+/* Admin — platform overview                                          */
+/* ------------------------------------------------------------------ */
+
+export interface PlatformOverviewUser {
+  id: string;
+  email: string | null;
+  name: string | null;
+  user_role: UserRole | null;
+  plan: string | null;
+  created_at: string;
+  client_count: number;
+}
+
+export interface PlatformClientBreakdown {
+  client_type: string;
+  count: number;
+  active_count: number;
+}
+
+export interface PlatformOverview {
+  total_users: number;
+  users_by_role: Record<string, number>;
+  clients: PlatformClientBreakdown[];
+  today_cost_usd: number;
+  emails_sent_today: number;
+  hiring_briefs: { total: number; active: number; filled: number };
+  matches_made: number;
+  all_users: PlatformOverviewUser[];
+}
+
+export async function getPlatformOverview(): Promise<PlatformOverview> {
+  const { data } = await api.get<PlatformOverview>("/api/admin/platform");
+  return data;
+}

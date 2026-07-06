@@ -29,6 +29,7 @@ import {
   ChevronDown,
   LogOut,
   User,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 import DemoBanner from "@/components/demo-banner";
@@ -36,10 +37,18 @@ import OnboardingTour from "@/components/onboarding-tour";
 import RoleSelector from "@/components/role-selector";
 import { useClientList } from "@/components/client-select";
 import { useActiveClient } from "@/components/active-client";
-import { triggerOrchestrator, getMe, type UserRole } from "@/lib/api";
+import { triggerOrchestrator, getMe, setUserRole, type UserRole } from "@/lib/api";
 
 // Auth/splash routes render bare — no app chrome.
 const BARE_ROUTES = ["/welcome", "/sign-in", "/sign-up", "/onboarding"];
+
+const ADMIN_CLERK_ID = process.env.NEXT_PUBLIC_ADMIN_CLERK_ID || "";
+
+const ROLE_OPTIONS = [
+  { value: "abm", label: "🎯", title: "Campaigns" },
+  { value: "candidate", label: "💼", title: "Job Search" },
+  { value: "hiring_manager", label: "🔍", title: "Hiring" },
+] as const;
 
 interface NavItem {
   href: string;
@@ -111,9 +120,13 @@ function Logo() {
 function Sidebar({
   pathname,
   nav,
+  userRole,
+  onSwitchRole,
 }: {
   pathname: string | null;
   nav: NavItem[];
+  userRole: UserRole | null;
+  onSwitchRole: (role: UserRole) => void;
 }) {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -136,6 +149,31 @@ function Sidebar({
           </Link>
         ))}
       </nav>
+
+      {/* Visible to every authenticated user — role is DB-backed and
+          permanent, but switchable here rather than a one-time choice. */}
+      <div className="border-t border-[var(--border)] px-3 py-3">
+        <div className="mb-1.5 text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">
+          Switch mode
+        </div>
+        <div className="flex gap-1">
+          {ROLE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onSwitchRole(opt.value)}
+              title={opt.title}
+              className={`flex-1 rounded-md border py-1.5 text-[16px] transition-colors ${
+                userRole === opt.value
+                  ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "border-[var(--border)] bg-transparent text-[var(--text-secondary)]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3">
         <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
@@ -245,8 +283,8 @@ function TopBar({
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isLoaded, isSignedIn } = useUser();
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const { isLoaded, isSignedIn, user } = useUser();
+  const [userRole, setUserRoleState] = useState<UserRole | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
 
   useEffect(() => {
@@ -254,10 +292,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     getMe()
       .then((me) => {
-        if (!cancelled) setUserRole(me.user_role ?? null);
+        if (!cancelled) setUserRoleState(me.user_role ?? null);
       })
       .catch(() => {
-        if (!cancelled) setUserRole(null);
+        if (!cancelled) setUserRoleState(null);
       })
       .finally(() => {
         if (!cancelled) setRoleLoading(false);
@@ -267,10 +305,24 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     };
   }, [isLoaded, isSignedIn]);
 
-  const nav =
+  const switchRole = async (newRole: UserRole) => {
+    if (newRole === userRole) return;
+    try {
+      await setUserRole(newRole);
+      window.location.reload();
+    } catch (e) {
+      console.error("Role switch failed", e);
+    }
+  };
+
+  const isAdmin = !!ADMIN_CLERK_ID && user?.id === ADMIN_CLERK_ID;
+
+  const baseNav =
     userRole === "candidate" ? JOB_NAV
     : userRole === "hiring_manager" ? HIRING_NAV
     : ABM_NAV; // default for 'abm' and null (role not yet set)
+
+  const nav = isAdmin ? [...baseNav, { href: "/admin", label: "Admin Console", icon: Shield }] : baseNav;
 
   // Bare (no app chrome): auth/splash routes and the full-screen launching page.
   if (BARE_ROUTES.some((p) => pathname?.startsWith(p)) || pathname?.endsWith("/launching")) {
@@ -281,7 +333,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen flex-col">
       <DemoBanner mode={userRole === "candidate" ? "job_search" : "abm"} />
       <div className="flex min-h-0 flex-1">
-        <Sidebar pathname={pathname} nav={nav} />
+        <Sidebar pathname={pathname} nav={nav} userRole={userRole} onSwitchRole={switchRole} />
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar pathname={pathname} nav={nav} showClientSelector={userRole !== "candidate" && userRole !== "hiring_manager"} />
           <main className="sk-scroll min-h-0 flex-1 overflow-y-auto bg-white p-6">
@@ -290,9 +342,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <OnboardingTour />
-      {!roleLoading && !userRole && (
-        <RoleSelector onComplete={() => window.location.reload()} />
-      )}
+      {!roleLoading && !userRole && <RoleSelector />}
     </div>
   );
 }
