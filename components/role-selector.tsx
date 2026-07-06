@@ -12,7 +12,8 @@
  *      control of a company inbox before the domain is trusted.
  *   3. Company details (hiring_manager only, after verification, skippable)
  *      — the organisation itself was already created during step 2's OTP
- *      confirmation; this just updates users.company_name/company_stage.
+ *      confirmation; this updates users.company_name/company_stage plus
+ *      the organisation's name/industry/stage to match.
  *
  * SECURITY (frontend): the OTP is never persisted anywhere but this
  * component's own transient state, is cleared immediately after every
@@ -21,7 +22,7 @@
  * error objects (never the code itself) are logged.
  */
 import { useEffect, useRef, useState } from "react";
-import { setUserRole, sendOtp, confirmOtp, type UserRole } from "@/lib/api";
+import { setUserRole, sendOtp, confirmOtp, updateMyOrg, type UserRole } from "@/lib/api";
 
 type Step = 1 | 2 | 3;
 
@@ -224,11 +225,24 @@ export default function RoleSelector() {
     setError(null);
     try {
       // Org was already created (and domain-verified) during OTP confirm —
-      // this just updates the user's own company_name/company_stage.
+      // this updates the user's own company_name/company_stage.
       await setUserRole("hiring_manager", {
         company_name: org.name.trim(),
         company_stage: org.stage,
       });
+
+      try {
+        await updateMyOrg({
+          name: org.name,
+          industry: org.industry,
+          stage: org.stage,
+        });
+      } catch (e) {
+        // Non-critical — org name/industry/stage update failed.
+        // Role and verification already saved — continue.
+        console.error("Org update failed (non-critical):", e);
+      }
+
       window.location.assign("/hiring");
     } catch {
       setError("Could not save — please try again.");

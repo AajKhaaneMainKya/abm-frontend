@@ -819,6 +819,18 @@ export async function getMyOrg(): Promise<Organisation | Record<string, never>> 
   return data;
 }
 
+export async function updateMyOrg(data: {
+  name?: string;
+  industry?: string;
+  stage?: string;
+}): Promise<Pick<Organisation, "id" | "name" | "domain" | "industry" | "stage">> {
+  const res = await api.patch<Pick<Organisation, "id" | "name" | "domain" | "industry" | "stage">>(
+    "/api/organisations/me",
+    data,
+  );
+  return res.data;
+}
+
 /* ------------------------------------------------------------------ */
 /* Hiring marketplace — briefs, shortlists, reveal flow                */
 /* ------------------------------------------------------------------ */
