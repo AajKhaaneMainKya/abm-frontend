@@ -1039,3 +1039,42 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
   const { data } = await api.get<PlatformOverview>("/api/admin/platform");
   return data;
 }
+
+/* ------------------------------------------------------------------ */
+/* Work-email OTP verification (hiring-manager domain proof)          */
+/* ------------------------------------------------------------------ */
+
+export async function sendOtp(
+  email: string,
+  companyName: string,
+): Promise<{ sent: boolean; email: string; domain: string }> {
+  const res = await api.post("/api/verify/send-otp", {
+    email,
+    company_name: companyName,
+  });
+  return res.data;
+}
+
+export async function confirmOtp(
+  otp: string,
+  companyName: string,
+  companyStage: string,
+  industry: string,
+): Promise<{ verified: boolean; domain: string; work_email: string }> {
+  const res = await api.post("/api/verify/confirm-otp", {
+    otp,
+    company_name: companyName,
+    company_stage: companyStage,
+    industry,
+  });
+  return res.data;
+}
+
+export async function getVerifyStatus(): Promise<{
+  verified: boolean;
+  work_email: string | null;
+  has_org: boolean;
+}> {
+  const res = await api.get("/api/verify/status");
+  return res.data;
+}
