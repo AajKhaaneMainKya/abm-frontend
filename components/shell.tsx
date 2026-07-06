@@ -288,7 +288,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <OnboardingTour />
-      {!roleLoading && !userRole && <RoleSelector />}
+      {!roleLoading && !userRole && (
+        <RoleSelector onComplete={() => window.location.reload()} />
+      )}
     </div>
   );
 }

@@ -775,7 +775,46 @@ export async function getMe(): Promise<Me> {
   return data;
 }
 
-export async function setUserRole(role: UserRole): Promise<{ role: UserRole }> {
-  const { data } = await api.post<{ role: UserRole }>("/api/users/role", { role });
+export async function setUserRole(
+  role: UserRole,
+  company?: { company_name?: string; company_stage?: string },
+): Promise<{ role: UserRole }> {
+  const { data } = await api.post<{ role: UserRole }>("/api/users/role", {
+    role,
+    company_name: company?.company_name,
+    company_stage: company?.company_stage,
+  });
+  return data;
+}
+
+/* ------------------------------------------------------------------ */
+/* Organisations — hiring-manager company profile                     */
+/* ------------------------------------------------------------------ */
+
+export interface OrgInput {
+  name: string;
+  domain?: string;
+  stage?: string;
+  industry?: string;
+}
+
+export interface Organisation {
+  id: string;
+  name: string;
+  domain: string | null;
+  stage: string | null;
+  industry: string | null;
+  size_min: number;
+  size_max: number;
+  created_at: string;
+}
+
+export async function createOrg(data: OrgInput): Promise<{ org_id: string }> {
+  const { data: res } = await api.post<{ org_id: string }>("/api/organisations", data);
+  return res;
+}
+
+export async function getMyOrg(): Promise<Organisation | Record<string, never>> {
+  const { data } = await api.get<Organisation | Record<string, never>>("/api/organisations/me");
   return data;
 }
