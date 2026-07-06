@@ -47,6 +47,10 @@ export default function WelcomePage() {
       }}>
         <SignIn
           routing="hash"
+          withSignUp
+          signUpUrl="/welcome"
+          fallbackRedirectUrl="/"
+          signUpFallbackRedirectUrl="/onboarding"
           appearance={{
             variables: {
               colorBackground: 'transparent',
