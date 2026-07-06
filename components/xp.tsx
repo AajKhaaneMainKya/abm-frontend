@@ -77,6 +77,7 @@ const TONE_COLOR: Record<string, string> = {
   green: "var(--success)",
   teal: "var(--accent)",
   amber: "var(--warning)",
+  purple: "#7c3aed",
 };
 
 export function XpProgress({
@@ -86,7 +87,7 @@ export function XpProgress({
   className = "",
 }: {
   value: number; // 0..100
-  tone?: "green" | "teal" | "amber";
+  tone?: "green" | "teal" | "amber" | "purple";
   showValue?: boolean;
   className?: string;
 }) {

@@ -1,15 +1,138 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Users, Send, MessageSquare, MessagesSquare, ArrowRight, Sparkles } from "lucide-react";
-import { getQueue, getAccounts, getDecisions, getActivity, getReplies } from "@/lib/api";
+import {
+  getQueue,
+  getAccounts,
+  getDecisions,
+  getActivity,
+  getReplies,
+  getCandidateMatches,
+  getCandidateNotifications,
+  respondToNotification,
+} from "@/lib/api";
 import { StatCard, Loading, ErrorNote } from "@/components/xp";
 import { JOB_SEARCH_CLIENT_ID } from "@/lib/job-search";
 import { fmtRelative } from "@/lib/job-search";
 
 const REFRESH = 30_000;
 const CLIENT_ID = JOB_SEARCH_CLIENT_ID;
+
+function CompaniesInterested() {
+  const qc = useQueryClient();
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+
+  const matches = useQuery({
+    queryKey: ["candidate-matches"],
+    queryFn: getCandidateMatches,
+    refetchInterval: REFRESH,
+  });
+  const notifications = useQuery({
+    queryKey: ["candidate-notifications"],
+    queryFn: getCandidateNotifications,
+    refetchInterval: REFRESH,
+  });
+
+  const respond = useMutation({
+    mutationFn: ({ notifId, action }: { notifId: string; action: "approve" | "reject" }) =>
+      respondToNotification(notifId, action),
+    onMutate: ({ notifId }) => setRespondingId(notifId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["candidate-matches"] });
+      qc.invalidateQueries({ queryKey: ["candidate-notifications"] });
+    },
+    onSettled: () => setRespondingId(null),
+  });
+
+  // Silent-fail this section on error/loading — it's a bonus above the
+  // existing dashboard, not core to it.
+  if (matches.isLoading || matches.error) return null;
+  const list = matches.data ?? [];
+  if (list.length === 0) return null;
+
+  const findNotif = (shortlistId: string) =>
+    (notifications.data ?? []).find(
+      (n) => n.type === "reveal_request" && n.metadata?.shortlist_id === shortlistId,
+    );
+
+  return (
+    <div>
+      <div className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+        Companies Interested In You
+      </div>
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {list.map((m) => {
+          const notif = m.reveal_state === "requested" ? findNotif(m.shortlist_id) : undefined;
+          return (
+            <div key={m.shortlist_id} className="card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[13px] text-[var(--text-secondary)]">
+                    A {m.company_stage ?? "growing"} company in {m.location ?? "your area"}
+                  </div>
+                  <div className="mt-0.5 text-[14px] font-semibold text-[var(--foreground)]">
+                    {m.role_title}
+                  </div>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-[13px] font-bold ${
+                    m.match_score >= 80
+                      ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                      : "bg-[var(--surface)] text-[var(--text-secondary)]"
+                  }`}
+                >
+                  {Math.round(m.match_score)}
+                </span>
+              </div>
+
+              <div className="mt-3 text-[12px]">
+                {m.reveal_state === "signal" && (
+                  <span className="text-[var(--text-secondary)]">Reviewing your profile</span>
+                )}
+                {m.reveal_state === "requested" && (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-[var(--accent)]">
+                      Wants to connect — respond?
+                    </span>
+                    {notif && (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={respondingId === notif.id}
+                          onClick={() => respond.mutate({ notifId: notif.id, action: "approve" })}
+                          className="btn btn-success"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          disabled={respondingId === notif.id}
+                          onClick={() => respond.mutate({ notifId: notif.id, action: "reject" })}
+                          className="btn btn-secondary"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {m.reveal_state === "revealed" && (
+                  <span className="font-medium text-[var(--success)]">Connected ✓</span>
+                )}
+                {m.reveal_state === "rejected" && (
+                  <span className="text-[var(--text-secondary)]">Declined</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 interface AttentionItem {
   key: string;
@@ -194,6 +317,8 @@ function TodaysActivity() {
 export default function JobSearchDashboardPage() {
   return (
     <div className="space-y-6">
+      <CompaniesInterested />
+
       <div>
         <div className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
           Needs Attention

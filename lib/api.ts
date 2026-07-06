@@ -818,3 +818,188 @@ export async function getMyOrg(): Promise<Organisation | Record<string, never>> 
   const { data } = await api.get<Organisation | Record<string, never>>("/api/organisations/me");
   return data;
 }
+
+/* ------------------------------------------------------------------ */
+/* Hiring marketplace — briefs, shortlists, reveal flow                */
+/* ------------------------------------------------------------------ */
+
+export interface BriefRequirements {
+  must_have?: string[];
+  nice_to_have?: string[];
+  dealbreakers?: string[];
+  culture?: string;
+}
+
+export interface CustomKeyword {
+  keyword: string;
+  weight: number; // fraction 0-1
+  label: string;
+}
+
+export interface CreateBriefPayload {
+  role_title: string;
+  role_type?: string;
+  location?: string;
+  company_name: string;
+  industry?: string;
+  company_stage?: string;
+  requirements?: BriefRequirements;
+  weights?: Record<string, number>;
+  custom_keywords?: CustomKeyword[];
+}
+
+export interface HiringBrief {
+  id: string;
+  user_id: string;
+  company_name: string;
+  company_stage: string | null;
+  company_size_min: number;
+  company_size_max: number;
+  industry: string | null;
+  location: string | null;
+  role_title: string;
+  role_type: string;
+  requirements: BriefRequirements;
+  weights: Record<string, number>;
+  custom_keywords: CustomKeyword[];
+  ctc_min: number | null;
+  ctc_max: number | null;
+  equity: boolean;
+  active: boolean;
+  filled: boolean;
+  created_at: string;
+  updated_at: string;
+  expires_at: string;
+  /** Only present on listBriefs() — COUNT(shortlists) per brief. */
+  match_count?: number;
+}
+
+export async function createBrief(
+  data: CreateBriefPayload,
+): Promise<{ brief_id: string; status: string }> {
+  const { data: res } = await api.post<{ brief_id: string; status: string }>(
+    "/api/hiring/briefs",
+    data,
+  );
+  return res;
+}
+
+export async function listBriefs(): Promise<HiringBrief[]> {
+  const { data } = await api.get<HiringBrief[]>("/api/hiring/briefs");
+  return data;
+}
+
+/** PATCH /api/hiring/briefs/{id} — needs the matching backend route added
+ * (api/main.py has no update endpoint for hiring_briefs yet). Wired here so
+ * the "Mark filled" action is ready the moment that route exists. */
+export async function markBriefFilled(
+  briefId: string,
+): Promise<{ id: string; filled: boolean; active: boolean }> {
+  const { data } = await api.patch<{ id: string; filled: boolean; active: boolean }>(
+    `/api/hiring/briefs/${briefId}`,
+    { filled: true },
+  );
+  return data;
+}
+
+export interface ShortlistHighlight {
+  type: "strength" | "gap";
+  text: string;
+}
+
+export interface DimensionScore {
+  label: string;
+  raw_score: number; // 0-100
+  weight: number; // percentage 0-100 (already *100'd by the backend)
+  weighted_score: number;
+  signals_found: string[];
+  type: "standard" | "custom_keyword";
+}
+
+export interface ShortlistProfileSignal {
+  summary: string;
+  industries: string[];
+  location: string;
+  skills_count: number;
+  builds_count: number;
+}
+
+export interface ShortlistProfileRevealed {
+  name: string;
+  context_graph: ContextGraph;
+}
+
+interface ShortlistEntryBase {
+  shortlist_id: string;
+  score: number;
+  match_explanation: string;
+  match_highlights: ShortlistHighlight[];
+  dimension_scores: Record<string, DimensionScore>;
+  reveal_state: "signal" | "requested" | "revealed" | "rejected";
+}
+
+export type ShortlistEntry =
+  | (ShortlistEntryBase & { anonymous: true; profile: ShortlistProfileSignal })
+  | (ShortlistEntryBase & { anonymous: false; profile: ShortlistProfileRevealed });
+
+export async function getBriefShortlist(briefId: string): Promise<ShortlistEntry[]> {
+  const { data } = await api.get<ShortlistEntry[]>(`/api/hiring/briefs/${briefId}/shortlist`);
+  return data;
+}
+
+export async function requestReveal(shortlistId: string): Promise<{ requested: boolean }> {
+  const { data } = await api.post<{ requested: boolean }>(
+    `/api/hiring/shortlist/${shortlistId}/request-reveal`,
+  );
+  return data;
+}
+
+/* ------------------------------------------------------------------ */
+/* Candidate side — matches + notifications                           */
+/* ------------------------------------------------------------------ */
+
+export interface CandidateMatch {
+  /** Needs `s.id AS shortlist_id` added to the backend's candidate_matches
+   * SELECT (api/main.py) — without it there's no id to act on. */
+  shortlist_id: string;
+  match_score: number;
+  reveal_state: "signal" | "requested" | "revealed" | "rejected";
+  match_explanation: string | null;
+  role_title: string;
+  company_stage: string | null;
+  location: string | null;
+  industry: string | null;
+  created_at: string;
+}
+
+export async function getCandidateMatches(): Promise<CandidateMatch[]> {
+  const { data } = await api.get<CandidateMatch[]>("/api/candidate/matches");
+  return data;
+}
+
+export interface CandidateNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string | null;
+  body: string | null;
+  read: boolean;
+  metadata: { shortlist_id?: string; score?: number; brief_id?: string };
+  created_at: string;
+}
+
+export async function getCandidateNotifications(): Promise<CandidateNotification[]> {
+  const { data } = await api.get<CandidateNotification[]>("/api/candidate/notifications");
+  return data;
+}
+
+export async function respondToNotification(
+  notifId: string,
+  action: "approve" | "reject",
+): Promise<{ action: string; shortlist_id: string | null }> {
+  const { data } = await api.post<{ action: string; shortlist_id: string | null }>(
+    `/api/candidate/notifications/${notifId}/respond`,
+    { action },
+  );
+  return data;
+}

@@ -69,7 +69,8 @@ const JOB_NAV: NavItem[] = [
 ];
 
 const HIRING_NAV: NavItem[] = [
-  { href: "/hiring", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/hiring/briefs", label: "Briefs", icon: FileText },
+  { href: "/hiring/post", label: "Post a Brief", icon: UserPlus },
 ];
 
 /** The single best-matching nav href for the current path (longest wins). */
@@ -89,6 +90,7 @@ function pageTitle(pathname: string | null, nav: NavItem[]): string {
   if (pathname === "/clients/new") return "New Client";
   if (pathname.startsWith("/clients/") && pathname.endsWith("/edit")) return "Edit Client";
   if (pathname.startsWith("/clients/") && pathname !== "/clients") return "Client";
+  if (pathname === "/hiring/shortlist") return "Shortlist";
   const best = bestMatch(pathname, nav);
   return nav.find((n) => n.href === best)?.label ?? "Sahayak";
 }
