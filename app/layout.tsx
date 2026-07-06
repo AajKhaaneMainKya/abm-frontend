@@ -12,8 +12,30 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Sahayak — Agentic ABM",
-  description: "Your outbound motion. Automated.",
+  title: "Sahayak — The hiring layer for Indian startups",
+  description:
+    "Post what you need. Get matched candidates who have actually built what you are looking for. Verified domain. Weighted matching. No recruiter spam.",
+  openGraph: {
+    title: "Sahayak — The hiring layer for Indian startups",
+    description:
+      "Post what you need. Get matched candidates who have actually built what you are looking for.",
+    url: "https://sahayakhq.co",
+    siteName: "Sahayak",
+    images: [
+      {
+        url: "https://sahayakhq.co/og-image.png",
+        width: 1200,
+        height: 630,
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sahayak — The hiring layer for Indian startups",
+    description:
+      "Post what you need. Get matched candidates who have actually built what you are looking for.",
+  },
 };
 
 export default function RootLayout({
