@@ -5,6 +5,7 @@
  */
 import axios from "axios";
 import { getClerkToken } from "./auth";
+import { paywallStore } from "./paywall-store";
 
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -29,6 +30,25 @@ api.interceptors.request.use(async (config) => {
   }
   return config;
 });
+
+// Trial/plan gate — the backend returns 402 when a trial-limited action is
+// blocked (see utils/trial.py). Route the detail message into the shared
+// paywall store so any component can pop the upgrade modal without each
+// call site wiring its own error handling.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 402) {
+      const detail = error.response?.data?.detail || "";
+      let reason = "trial_expired";
+      if (detail.includes("brief")) reason = "brief_limit";
+      else if (detail.includes("unlock")) reason = "unlock_limit";
+      else if (detail.includes("campaign")) reason = "client_limit";
+      paywallStore.trigger(reason);
+    }
+    return Promise.reject(error);
+  },
+);
 
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
@@ -762,12 +782,23 @@ export async function getMatchCard(clientId: string, seqId: string): Promise<Mat
 
 export type UserRole = "abm" | "candidate" | "hiring_manager";
 
+export interface TrialStatus {
+  plan: string;
+  trial_active: boolean;
+  days_remaining: number;
+  is_pro: boolean;
+  expired: boolean;
+}
+
 export interface Me {
   id: string;
   email: string | null;
   name: string | null;
   user_role: UserRole | null;
   plan: string | null;
+  trial_status: TrialStatus | null;
+  work_email_verified: boolean | null;
+  org_id: string | null;
 }
 
 export async function getMe(): Promise<Me> {

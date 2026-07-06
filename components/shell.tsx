@@ -35,9 +35,11 @@ import {
 import DemoBanner from "@/components/demo-banner";
 import OnboardingTour from "@/components/onboarding-tour";
 import RoleSelector from "@/components/role-selector";
+import PaywallModal from "@/components/paywall-modal";
 import { useClientList } from "@/components/client-select";
 import { useActiveClient } from "@/components/active-client";
-import { triggerOrchestrator, getMe, setUserRole, type UserRole } from "@/lib/api";
+import { triggerOrchestrator, getMe, setUserRole, type UserRole, type TrialStatus } from "@/lib/api";
+import { paywallStore } from "@/lib/paywall-store";
 
 // Auth/splash routes render bare — no app chrome.
 const BARE_ROUTES = ["/welcome", "/sign-in", "/sign-up", "/onboarding"];
@@ -117,16 +119,82 @@ function Logo() {
   );
 }
 
+function TrialBanner({
+  trialStatus,
+  onUpgrade,
+}: {
+  trialStatus: TrialStatus | null;
+  onUpgrade: () => void;
+}) {
+  const daysLeft = trialStatus?.days_remaining ?? 30;
+  const isExpired = trialStatus?.expired ?? false;
+  const isPro = trialStatus?.is_pro ?? false;
+
+  if (isPro) return null;
+
+  return (
+    <div
+      style={{
+        margin: "0 12px 8px",
+        padding: "10px 12px",
+        background: isExpired ? "#fef2f2" : daysLeft <= 7 ? "#fffbeb" : "#f0fdfa",
+        border: `1px solid ${isExpired ? "#fecaca" : daysLeft <= 7 ? "#fde68a" : "#99f6e4"}`,
+        borderRadius: "8px",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "12px",
+          fontWeight: "600",
+          color: isExpired ? "#dc2626" : daysLeft <= 7 ? "#92400e" : "#0f766e",
+          marginBottom: "4px",
+        }}
+      >
+        {isExpired ? "⚠️ Trial expired" : daysLeft <= 7 ? `⚡ ${daysLeft} days left` : `✓ Trial — ${daysLeft} days left`}
+      </div>
+      <div
+        style={{
+          fontSize: "11px",
+          color: "#6b7280",
+          marginBottom: "8px",
+        }}
+      >
+        {isExpired ? "Upgrade to continue using Sahayak" : "Free trial — no credit card needed"}
+      </div>
+      <button
+        onClick={onUpgrade}
+        style={{
+          width: "100%",
+          padding: "6px",
+          background: isExpired ? "#dc2626" : "#0f766e",
+          color: "#fff",
+          border: "none",
+          borderRadius: "6px",
+          fontSize: "11px",
+          fontWeight: "600",
+          cursor: "pointer",
+        }}
+      >
+        {isExpired ? "Upgrade now" : "View plans"}
+      </button>
+    </div>
+  );
+}
+
 function Sidebar({
   pathname,
   nav,
   userRole,
   onSwitchRole,
+  trialStatus,
+  onUpgrade,
 }: {
   pathname: string | null;
   nav: NavItem[];
   userRole: UserRole | null;
   onSwitchRole: (role: UserRole) => void;
+  trialStatus: TrialStatus | null;
+  onUpgrade: () => void;
 }) {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -149,6 +217,8 @@ function Sidebar({
           </Link>
         ))}
       </nav>
+
+      <TrialBanner trialStatus={trialStatus} onUpgrade={onUpgrade} />
 
       {/* Visible to every authenticated user — role is DB-backed and
           permanent, but switchable here rather than a one-time choice. */}
@@ -286,13 +356,19 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, user } = useUser();
   const [userRole, setUserRoleState] = useState<UserRole | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallReason, setPaywallReason] = useState("");
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
     let cancelled = false;
     getMe()
       .then((me) => {
-        if (!cancelled) setUserRoleState(me.user_role ?? null);
+        if (!cancelled) {
+          setUserRoleState(me.user_role ?? null);
+          setTrialStatus(me.trial_status ?? null);
+        }
       })
       .catch(() => {
         if (!cancelled) setUserRoleState(null);
@@ -304,6 +380,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, [isLoaded, isSignedIn]);
+
+  useEffect(() => {
+    return paywallStore.subscribe((reason) => {
+      setPaywallReason(reason);
+      setShowPaywall(true);
+    });
+  }, []);
 
   const switchRole = async (newRole: UserRole) => {
     if (newRole === userRole) return;
@@ -333,7 +416,14 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen flex-col">
       <DemoBanner mode={userRole === "candidate" ? "job_search" : "abm"} />
       <div className="flex min-h-0 flex-1">
-        <Sidebar pathname={pathname} nav={nav} userRole={userRole} onSwitchRole={switchRole} />
+        <Sidebar
+          pathname={pathname}
+          nav={nav}
+          userRole={userRole}
+          onSwitchRole={switchRole}
+          trialStatus={trialStatus}
+          onUpgrade={() => setShowPaywall(true)}
+        />
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar pathname={pathname} nav={nav} showClientSelector={userRole !== "candidate" && userRole !== "hiring_manager"} />
           <main className="sk-scroll min-h-0 flex-1 overflow-y-auto bg-white p-6">
@@ -343,6 +433,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       </div>
       <OnboardingTour />
       {!roleLoading && !userRole && <RoleSelector />}
+      <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} reason={paywallReason} />
     </div>
   );
 }
