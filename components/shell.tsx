@@ -2,10 +2,12 @@
 
 /**
  * App shell — modern SaaS layout:
- *  - fixed left sidebar (240px) with route-based navigation (ABM or Job Search)
+ *  - fixed left sidebar (240px) with route-based navigation (ABM, Job Search,
+ *    or Hiring Manager, chosen by the user's permanent DB-backed role)
  *  - top bar (56px): page title, global client selector, Trigger Now, user menu
  *  - main content area (white, scrolls)
- *  - first-run mode selector + persistent sidebar mode switcher
+ *  - first-login role selector (see components/role-selector.tsx) — shown
+ *    once, before user_role is set; never a switchable preference after that
  */
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -31,12 +33,10 @@ import {
 } from "lucide-react";
 import DemoBanner from "@/components/demo-banner";
 import OnboardingTour from "@/components/onboarding-tour";
-import ModeSelector, { useMode } from "./mode-selector";
+import RoleSelector from "@/components/role-selector";
 import { useClientList } from "@/components/client-select";
 import { useActiveClient } from "@/components/active-client";
-import { triggerOrchestrator } from "@/lib/api";
-
-type Mode = "abm" | "job_search";
+import { triggerOrchestrator, getMe, type UserRole } from "@/lib/api";
 
 // Auth/splash routes render bare — no app chrome.
 const BARE_ROUTES = ["/welcome", "/sign-in", "/sign-up", "/onboarding"];
@@ -66,6 +66,10 @@ const JOB_NAV: NavItem[] = [
   { href: "/job-search/graph", label: "Mind Map", icon: Network },
   { href: "/job-search/actions", label: "Actions", icon: CheckSquare },
   { href: "/job-search/profile", label: "My Profile", icon: User },
+];
+
+const HIRING_NAV: NavItem[] = [
+  { href: "/hiring", label: "Dashboard", icon: LayoutDashboard },
 ];
 
 /** The single best-matching nav href for the current path (longest wins). */
@@ -105,13 +109,9 @@ function Logo() {
 function Sidebar({
   pathname,
   nav,
-  mode,
-  setMode,
 }: {
   pathname: string | null;
   nav: NavItem[];
-  mode: Mode;
-  setMode: (m: Mode) => void;
 }) {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -134,36 +134,6 @@ function Sidebar({
           </Link>
         ))}
       </nav>
-
-      {/* Mode switcher */}
-      <div style={{ padding: "12px 16px", borderTop: "1px solid #e5e7eb" }}>
-        <div style={{ fontSize: "11px", color: "#9ca3af", marginBottom: "6px",
-                      textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          Mode
-        </div>
-        <div style={{ display: "flex", gap: "6px" }}>
-          {(["abm", "job_search"] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              style={{
-                flex: 1,
-                padding: "6px 8px",
-                borderRadius: "6px",
-                border: "1px solid",
-                borderColor: mode === m ? "#0f766e" : "#e5e7eb",
-                background: mode === m ? "#f0fdfa" : "#ffffff",
-                color: mode === m ? "#0f766e" : "#6b7280",
-                fontSize: "11px",
-                fontWeight: mode === m ? "600" : "400",
-                cursor: "pointer",
-              }}
-            >
-              {m === "abm" ? "🎯 ABM" : "💼 Jobs"}
-            </button>
-          ))}
-        </div>
-      </div>
 
       <div className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3">
         <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
@@ -247,13 +217,21 @@ function TriggerNowButton() {
   );
 }
 
-function TopBar({ pathname, nav, mode }: { pathname: string | null; nav: NavItem[]; mode: Mode }) {
+function TopBar({
+  pathname,
+  nav,
+  showClientSelector,
+}: {
+  pathname: string | null;
+  nav: NavItem[];
+  showClientSelector: boolean;
+}) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b border-[var(--border)] bg-white px-6">
       <h1 className="text-[15px] font-semibold text-[var(--foreground)]">{pageTitle(pathname, nav)}</h1>
       <div className="flex flex-1 justify-center">
-        {/* Client selector is ABM-only — job search has no per-client concept. */}
-        {mode === "abm" && <ClientSelector />}
+        {/* Client selector is ABM-only — job search and hiring have no per-client concept. */}
+        {showClientSelector && <ClientSelector />}
       </div>
       <TriggerNowButton />
       <div className="md:hidden">
@@ -265,24 +243,32 @@ function TopBar({ pathname, nav, mode }: { pathname: string | null; nav: NavItem
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { mode, setMode } = useMode();
-  const [showSelector, setShowSelector] = useState(false);
+  const { isLoaded, isSignedIn } = useUser();
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
 
   useEffect(() => {
-    const skip = localStorage.getItem("sahayak_mode_skip");
-    const stored = localStorage.getItem("sahayak_mode");
-    if (!skip && !stored) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- first-run check reads localStorage after mount
-      setShowSelector(true);
-    }
-  }, []);
+    if (!isLoaded || !isSignedIn) return;
+    let cancelled = false;
+    getMe()
+      .then((me) => {
+        if (!cancelled) setUserRole(me.user_role ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setUserRole(null);
+      })
+      .finally(() => {
+        if (!cancelled) setRoleLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoaded, isSignedIn]);
 
-  const handleModeSelect = (m: Mode) => {
-    setMode(m);
-    setShowSelector(false);
-  };
-
-  const nav = mode === "job_search" ? JOB_NAV : ABM_NAV;
+  const nav =
+    userRole === "candidate" ? JOB_NAV
+    : userRole === "hiring_manager" ? HIRING_NAV
+    : ABM_NAV; // default for 'abm' and null (role not yet set)
 
   // Bare (no app chrome): auth/splash routes and the full-screen launching page.
   if (BARE_ROUTES.some((p) => pathname?.startsWith(p)) || pathname?.endsWith("/launching")) {
@@ -291,18 +277,18 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen flex-col">
-      <DemoBanner mode={mode} />
+      <DemoBanner mode={userRole === "candidate" ? "job_search" : "abm"} />
       <div className="flex min-h-0 flex-1">
-        <Sidebar pathname={pathname} nav={nav} mode={mode} setMode={setMode} />
+        <Sidebar pathname={pathname} nav={nav} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar pathname={pathname} nav={nav} mode={mode} />
+          <TopBar pathname={pathname} nav={nav} showClientSelector={userRole !== "candidate" && userRole !== "hiring_manager"} />
           <main className="sk-scroll min-h-0 flex-1 overflow-y-auto bg-white p-6">
             {children}
           </main>
         </div>
       </div>
       <OnboardingTour />
-      {showSelector && <ModeSelector onSelect={handleModeSelect} />}
+      {!roleLoading && !userRole && <RoleSelector />}
     </div>
   );
 }

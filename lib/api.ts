@@ -754,3 +754,28 @@ export async function getMatchCard(clientId: string, seqId: string): Promise<Mat
   );
   return data;
 }
+
+/* ------------------------------------------------------------------ */
+/* User role — permanent, DB-backed. Set once via the role selector,   */
+/* read by the shell to pick which nav to render.                     */
+/* ------------------------------------------------------------------ */
+
+export type UserRole = "abm" | "candidate" | "hiring_manager";
+
+export interface Me {
+  id: string;
+  email: string | null;
+  name: string | null;
+  user_role: UserRole | null;
+  plan: string | null;
+}
+
+export async function getMe(): Promise<Me> {
+  const { data } = await api.get<Me>("/api/users/me");
+  return data;
+}
+
+export async function setUserRole(role: UserRole): Promise<{ role: UserRole }> {
+  const { data } = await api.post<{ role: UserRole }>("/api/users/role", { role });
+  return data;
+}
