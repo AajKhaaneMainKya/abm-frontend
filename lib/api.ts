@@ -713,9 +713,15 @@ export interface ContextGraph {
   };
 }
 
+export interface ResumeEntry {
+  filename: string;
+  uploaded_at?: string;
+  size_chars?: number;
+}
+
 export interface UserProfile {
   context_graph: ContextGraph;
-  resumes: { filename: string }[];
+  resumes: ResumeEntry[];
   voice_anchor: string | null;
   updated_at?: string | null;
 }
@@ -747,6 +753,11 @@ export async function uploadResume(file: File): Promise<UserProfile> {
 export async function updateVoiceAnchor(voiceAnchor: string): Promise<UserProfile> {
   const { data } = await api.patch<UserProfile>("/api/profile", { voice_anchor: voiceAnchor });
   return data;
+}
+
+export async function deleteResume(index: number) {
+  const res = await api.delete(`/api/profile/resume/${index}`);
+  return res.data;
 }
 
 /* ------------------------------------------------------------------ */

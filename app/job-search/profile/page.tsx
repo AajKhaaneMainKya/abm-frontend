@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, Check, Sparkles } from "lucide-react";
-import { getProfile, uploadResume, updateVoiceAnchor, type UserProfile } from "@/lib/api";
+import { getProfile, uploadResume, deleteResume, updateVoiceAnchor, type UserProfile } from "@/lib/api";
 import { Loading, ErrorNote, XpButton, XpBadge } from "@/components/xp";
+import ContextGraphViz from "@/components/context-graph-viz";
 
 const PROFILE_QUERY_KEY = ["job-search-profile"];
 
@@ -223,8 +225,67 @@ function VoiceAnchor({ profile }: { profile: UserProfile | undefined }) {
   );
 }
 
+function ResumeList({ resumes, onDelete, deletingIndex }: {
+  resumes: UserProfile["resumes"];
+  onDelete: (index: number) => void;
+  deletingIndex: number | null;
+}) {
+  if (resumes.length === 0) return null;
+
+  return (
+    <div className="card p-4">
+      <div className="mb-3 text-[13px] font-semibold text-[var(--foreground)]">Your resumes</div>
+      {resumes.map((resume, index) => (
+        <div
+          key={index}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "10px 14px",
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            marginBottom: "8px",
+            background: "#f9fafb",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "20px" }}>📄</span>
+            <div>
+              <div style={{ fontSize: "13px", fontWeight: "600", color: "#111827" }}>{resume.filename}</div>
+              <div style={{ fontSize: "11px", color: "#6b7280" }}>
+                {resume.uploaded_at ? new Date(resume.uploaded_at).toLocaleDateString() : "—"}
+                {resume.size_chars ? ` · ${Math.round(resume.size_chars / 5)} words` : ""}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => onDelete(index)}
+            disabled={deletingIndex === index}
+            style={{
+              padding: "4px 10px",
+              background: "transparent",
+              border: "1px solid #fecaca",
+              color: "#dc2626",
+              borderRadius: "6px",
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            {deletingIndex === index ? "..." : "Remove"}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ProfilePage() {
+  const qc = useQueryClient();
+  const { user } = useUser();
   const profileQ = useQuery({ queryKey: PROFILE_QUERY_KEY, queryFn: getProfile });
+  const [deletingIndex, setDeletingIndex] = useState<number | null>(null);
+  const [toast, setToast] = useState("");
 
   if (profileQ.isLoading) return <Loading label="Loading your profile…" />;
   if (profileQ.error) return <ErrorNote error={profileQ.error} />;
@@ -232,27 +293,59 @@ export default function ProfilePage() {
   const profile = profileQ.data;
   const resumes = profile?.resumes ?? [];
 
+  const handleDeleteResume = async (index: number) => {
+    if (!confirm("Remove this resume? Graph will be rebuilt.")) return;
+    setDeletingIndex(index);
+    try {
+      await deleteResume(index);
+      await qc.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+      setToast("Resume removed. Graph rebuilt.");
+      setTimeout(() => setToast(""), 3000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeletingIndex(null);
+    }
+  };
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <ResumeUpload />
 
-      {resumes.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {resumes.map((r, i) => (
-            <span
-              key={i}
-              className="flex items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 py-1 text-[12px] text-[var(--text-secondary)]"
-            >
-              <FileText size={12} /> {r.filename}
-            </span>
-          ))}
-        </div>
-      )}
+      <ResumeList resumes={resumes} onDelete={handleDeleteResume} deletingIndex={deletingIndex} />
 
       <ExperienceCards profile={profile} />
       <BuildCards profile={profile} />
       <SkillsCloud profile={profile} />
       <VoiceAnchor profile={profile} />
+
+      <div style={{ marginTop: "24px" }}>
+        <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#111827", marginBottom: "4px" }}>
+          Your Knowledge Graph
+        </h2>
+        <p style={{ fontSize: "13px", color: "#6b7280", marginBottom: "16px" }}>
+          This is how Sahayak sees you. Drag nodes to explore. Hiring managers match against this graph.
+        </p>
+        <ContextGraphViz contextGraph={profile?.context_graph} candidateName={user?.firstName || "You"} />
+      </div>
+
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            background: "#111827",
+            color: "#fff",
+            padding: "12px 20px",
+            borderRadius: "8px",
+            fontSize: "14px",
+            zIndex: 9999,
+          }}
+        >
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
