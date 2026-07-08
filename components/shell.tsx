@@ -27,15 +27,13 @@ import {
   FileText,
   Globe,
   UserPlus,
-  MessageSquare,
-  Network,
-  CheckSquare,
   Play,
   Check,
   ChevronDown,
   LogOut,
   User,
   Users,
+  Bell,
   Shield,
   type LucideIcon,
 } from "lucide-react";
@@ -77,14 +75,12 @@ const ABM_NAV: NavItem[] = [
   { href: "/clients/new", label: "New Client", icon: UserPlus, tour: "nav-new-client" },
 ];
 
+// Minimal candidate nav — old pages (dashboard, companies, outreach queue,
+// replies, mind map, actions) still exist, just unreachable from here now.
 const JOB_NAV: NavItem[] = [
-  { href: "/job-search", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/job-search/companies", label: "Companies", icon: Building2 },
-  { href: "/job-search/queue", label: "Outreach Queue", icon: Inbox },
-  { href: "/job-search/replies", label: "Replies", icon: MessageSquare },
-  { href: "/job-search/graph", label: "Mind Map", icon: Network },
-  { href: "/job-search/actions", label: "Actions", icon: CheckSquare },
   { href: "/job-search/profile", label: "My Profile", icon: User },
+  { href: "/job-search/matches", label: "My Matches", icon: Users },
+  { href: "/job-search/notifications", label: "Notifications", icon: Bell },
 ];
 
 const HIRING_NAV: NavItem[] = [
