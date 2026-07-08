@@ -2,12 +2,18 @@
 
 /**
  * App shell — modern SaaS layout:
- *  - fixed left sidebar (240px) with route-based navigation (ABM, Job Search,
- *    or Hiring Manager, chosen by the user's permanent DB-backed role)
+ *  - fixed left sidebar (240px) with route-based navigation (Job Search or
+ *    Hiring Manager, chosen by the user's permanent DB-backed role). ABM nav
+ *    is no longer user-facing — see ROLE_OPTIONS below — but the ABM routes
+ *    and their components (ABM_NAV, ClientSelector, TriggerNowButton) are
+ *    left intact since they're still live routes, just unreachable from the
+ *    switcher/sidebar for regular users now.
  *  - top bar (56px): page title, global client selector, Trigger Now, user menu
  *  - main content area (white, scrolls)
  *  - first-login role selector (see components/role-selector.tsx) — shown
- *    once, before user_role is set; never a switchable preference after that
+ *    once, before user_role is set; still offers all three roles (ABM
+ *    included) since that's the one place a user can end up as 'abm' at
+ *    all — switchable here after, but only between candidate/hiring_manager
  */
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -46,10 +52,11 @@ const BARE_ROUTES = ["/welcome", "/waitlist", "/sign-in", "/sign-up", "/onboardi
 
 const ADMIN_CLERK_ID = process.env.NEXT_PUBLIC_ADMIN_CLERK_ID || "";
 
+// ABM removed entirely from the user-facing switcher — only reachable via
+// the first-login RoleSelector now (components/role-selector.tsx).
 const ROLE_OPTIONS = [
-  { value: "abm", label: "🎯", title: "Campaigns" },
   { value: "candidate", label: "💼", title: "Job Search" },
-  { value: "hiring_manager", label: "🔍", title: "Hiring" },
+  { value: "hiring_manager", label: "🔍", title: "Find Talent" },
 ] as const;
 
 interface NavItem {
@@ -410,10 +417,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   const isAdmin = !!ADMIN_CLERK_ID && user?.id === ADMIN_CLERK_ID;
 
-  const baseNav =
-    userRole === "candidate" ? JOB_NAV
-    : userRole === "hiring_manager" ? HIRING_NAV
-    : ABM_NAV; // default for 'abm' and null (role not yet set)
+  // No 'abm' branch — ABM nav is no longer user-facing (see ROLE_OPTIONS).
+  // A user can only land here with userRole === 'abm' or null (role not yet
+  // picked) transiently before RoleSelector takes over; HIRING_NAV is the
+  // fallback either way, matching the new two-mode switcher.
+  const baseNav = userRole === "candidate" ? JOB_NAV : HIRING_NAV;
 
   const nav = isAdmin ? [...baseNav, { href: "/admin", label: "Admin Console", icon: Shield }] : baseNav;
 
