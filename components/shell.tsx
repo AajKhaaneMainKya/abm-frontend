@@ -4,16 +4,16 @@
  * App shell — modern SaaS layout:
  *  - fixed left sidebar (240px) with route-based navigation, chosen by the
  *    user's permanent DB-backed role (JOB_NAV / HIRING_NAV / ABM_NAV — see
- *    the explicit per-role baseNav below). ABM is no longer reachable from
- *    the switcher (see ROLE_OPTIONS) — only the first-login RoleSelector can
- *    put someone into 'abm' — but ABM_NAV still renders correctly for
- *    whoever's already there.
+ *    the explicit per-role baseNav below).
  *  - top bar (56px): page title, global client selector, Trigger Now, user menu
  *  - main content area (white, scrolls)
  *  - first-login role selector (see components/role-selector.tsx) — shown
- *    once, before user_role is set; still offers all three roles (ABM
- *    included) since that's the one place a user can end up as 'abm' at
- *    all — switchable here after, but only between candidate/hiring_manager
+ *    once, before user_role is set; offers all three roles.
+ *  - mode switcher (bottom of sidebar) — admin-only (see isAdmin, sourced
+ *    from /api/users/me's server-verified is_admin). Regular users' nav is
+ *    permanently locked to their onboarding role with no switcher visible
+ *    at all; admins get all three modes via ADMIN_ROLE_OPTIONS, including
+ *    'abm', for testing/support.
  */
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -49,13 +49,22 @@ import { paywallStore } from "@/lib/paywall-store";
 // Auth/splash routes render bare — no app chrome.
 const BARE_ROUTES = ["/welcome", "/waitlist", "/sign-in", "/sign-up", "/onboarding"];
 
-const ADMIN_CLERK_ID = process.env.NEXT_PUBLIC_ADMIN_CLERK_ID || "";
-
-// ABM removed entirely from the user-facing switcher — only reachable via
-// the first-login RoleSelector now (components/role-selector.tsx).
+// Regular users never see a mode switcher at all now — nav is locked to
+// their onboarding role (see baseNav below). ROLE_OPTIONS is unused as of
+// the isAdmin-gated switcher (ADMIN_ROLE_OPTIONS is what actually renders),
+// kept only for reference / in case a non-admin switcher comes back.
 const ROLE_OPTIONS = [
   { value: "candidate", label: "💼", title: "Job Search" },
   { value: "hiring_manager", label: "🔍", title: "Find Talent" },
+] as const;
+
+// Admin-only — the switcher itself is gated on isAdmin (server-verified via
+// /api/users/me's is_admin, see Shell below), so only admins ever see this,
+// and they get all three modes including ABM.
+const ADMIN_ROLE_OPTIONS = [
+  { value: "candidate", label: "💼", title: "Job Search" },
+  { value: "hiring_manager", label: "🔍", title: "Find Talent" },
+  { value: "abm", label: "🎯", title: "ABM" },
 ] as const;
 
 interface NavItem {
@@ -193,6 +202,7 @@ function Sidebar({
   onSwitchRole,
   trialStatus,
   onUpgrade,
+  isAdmin,
 }: {
   pathname: string | null;
   nav: NavItem[];
@@ -200,6 +210,7 @@ function Sidebar({
   onSwitchRole: (role: UserRole) => void;
   trialStatus: TrialStatus | null;
   onUpgrade: () => void;
+  isAdmin: boolean;
 }) {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -225,30 +236,33 @@ function Sidebar({
 
       <TrialBanner trialStatus={trialStatus} onUpgrade={onUpgrade} />
 
-      {/* Visible to every authenticated user — role is DB-backed and
-          permanent, but switchable here rather than a one-time choice. */}
-      <div className="border-t border-[var(--border)] px-3 py-3">
-        <div className="mb-1.5 text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">
-          Switch mode
+      {/* Admin-only — regular users' nav is locked to their permanent
+          DB-backed onboarding role with no way to change it here; admins
+          can freely switch between all three modes (testing/support). */}
+      {isAdmin && (
+        <div className="border-t border-[var(--border)] px-3 py-3">
+          <div className="mb-1.5 text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">
+            Switch mode
+          </div>
+          <div className="flex gap-1">
+            {ADMIN_ROLE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onSwitchRole(opt.value)}
+                title={opt.title}
+                className={`flex-1 rounded-md border py-1.5 text-[16px] transition-colors ${
+                  userRole === opt.value
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "border-[var(--border)] bg-transparent text-[var(--text-secondary)]"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-1">
-          {ROLE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onSwitchRole(opt.value)}
-              title={opt.title}
-              className={`flex-1 rounded-md border py-1.5 text-[16px] transition-colors ${
-                userRole === opt.value
-                  ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
-                  : "border-[var(--border)] bg-transparent text-[var(--text-secondary)]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
       <div className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3">
         <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
@@ -362,6 +376,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRoleState] = useState<UserRole | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null);
+  // Server-verified via /api/users/me's is_admin (backend checks Clerk id
+  // against ADMIN_CLERK_ID, a server-only env var) — replaces the old
+  // client-side check against NEXT_PUBLIC_ADMIN_CLERK_ID, which was the only
+  // other consumer of this value in the file.
+  const [isAdmin, setIsAdmin] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallReason, setPaywallReason] = useState("");
 
@@ -377,10 +396,14 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         if (!cancelled) {
           setUserRoleState(me.user_role ?? null);
           setTrialStatus(me.trial_status ?? null);
+          setIsAdmin(me.is_admin ?? false);
         }
       })
       .catch(() => {
-        if (!cancelled) setUserRoleState(null);
+        if (!cancelled) {
+          setUserRoleState(null);
+          setIsAdmin(false);
+        }
       })
       .finally(() => {
         if (!cancelled) setRoleLoading(false);
@@ -417,11 +440,14 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         window.location.assign("/hiring/briefs");
       } else if (newRole === "candidate") {
         window.location.assign("/job-search");
+      } else if (newRole === "abm") {
+        // Reachable now — admins get ABM in ADMIN_ROLE_OPTIONS. app/page.tsx
+        // ('/') only renders the ABM dashboard for userRole === 'abm', so
+        // this has to be '/', not '/job-search' like the old catch-all below.
+        window.location.assign("/");
       } else {
-        // Unreachable via the switcher itself (ROLE_OPTIONS only offers
-        // candidate/hiring_manager), kept for UserRole's full union type.
-        // /job-search over / — root now immediately bounces non-abm roles
-        // away anyway (see app/page.tsx), so this avoids a redundant hop.
+        // UserRole is exhaustively covered by the three branches above;
+        // this is unreachable but kept as a safe default.
         window.location.assign("/job-search");
       }
     } catch (e) {
@@ -429,14 +455,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isAdmin = !!ADMIN_CLERK_ID && user?.id === ADMIN_CLERK_ID;
-
-  // Explicit per role — 'abm' still resolves to ABM_NAV (real ABM accounts
-  // still exist via the first-login RoleSelector and app/page.tsx's ABM
-  // dashboard; they just can't switch back to it from ROLE_OPTIONS anymore).
-  // null/loading (role not yet picked) falls back to JOB_NAV as a neutral
-  // default until RoleSelector takes over — not HIRING_NAV, which was
-  // incorrectly the fallback for both 'abm' and null before this fix.
+  // Explicit per role — 'abm' resolves to ABM_NAV (real ABM accounts exist
+  // via the first-login RoleSelector and, for admins, ADMIN_ROLE_OPTIONS in
+  // the switcher). null/loading (role not yet picked) falls back to JOB_NAV
+  // as a neutral default until RoleSelector takes over.
   const baseNav =
     userRole === "candidate" ? JOB_NAV
     : userRole === "hiring_manager" ? HIRING_NAV
@@ -461,6 +483,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           onSwitchRole={switchRole}
           trialStatus={trialStatus}
           onUpgrade={() => setShowPaywall(true)}
+          isAdmin={isAdmin}
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar pathname={pathname} nav={nav} showClientSelector={userRole !== "candidate" && userRole !== "hiring_manager"} />

@@ -810,6 +810,7 @@ export interface Me {
   trial_status: TrialStatus | null;
   work_email_verified: boolean | null;
   org_id: string | null;
+  is_admin: boolean | null;
 }
 
 export async function getMe(): Promise<Me> {
