@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, Check, Sparkles } from "lucide-react";
-import { getProfile, uploadResume, deleteResume, updateVoiceAnchor, type UserProfile } from "@/lib/api";
+import { getProfile, getMe, uploadResume, deleteResume, updateVoiceAnchor, type UserProfile } from "@/lib/api";
 import { Loading, ErrorNote, XpButton, XpBadge } from "@/components/xp";
 import ContextGraphViz from "@/components/context-graph-viz";
 import TelegramConnect from "@/components/telegram-connect";
@@ -283,10 +284,22 @@ function ResumeList({ resumes, onDelete, deletingIndex }: {
 
 export default function ProfilePage() {
   const qc = useQueryClient();
+  const router = useRouter();
   const { user } = useUser();
   const profileQ = useQuery({ queryKey: PROFILE_QUERY_KEY, queryFn: getProfile });
+  const meQ = useQuery({ queryKey: ["me"], queryFn: getMe });
   const [deletingIndex, setDeletingIndex] = useState<number | null>(null);
   const [toast, setToast] = useState("");
+
+  const userRole = meQ.data?.user_role ?? null;
+
+  useEffect(() => {
+    // Hiring managers have no resume/context-graph — shell.tsx already hides
+    // the job-search nav for them, but this guards direct URL navigation.
+    if (userRole === "hiring_manager") {
+      router.push("/hiring/briefs");
+    }
+  }, [userRole, router]);
 
   if (profileQ.isLoading) return <Loading label="Loading your profile…" />;
   if (profileQ.error) return <ErrorNote error={profileQ.error} />;
