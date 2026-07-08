@@ -145,8 +145,8 @@ interface AttentionItem {
 }
 
 function NeedsAttention() {
-  const queue = useQuery({ queryKey: ["js-queue", CLIENT_ID], queryFn: () => getQueue(CLIENT_ID), refetchInterval: REFRESH });
-  const replies = useQuery({ queryKey: ["js-replies", CLIENT_ID], queryFn: () => getReplies(CLIENT_ID), refetchInterval: REFRESH });
+  const queue = useQuery({ queryKey: ["js-queue", CLIENT_ID], queryFn: () => getQueue(CLIENT_ID), enabled: false, refetchInterval: REFRESH });
+  const replies = useQuery({ queryKey: ["js-replies", CLIENT_ID], queryFn: () => getReplies(CLIENT_ID), enabled: false, refetchInterval: REFRESH });
 
   if (queue.isLoading || replies.isLoading) return <Loading label="Checking what needs attention…" />;
   if (queue.error) return <ErrorNote error={queue.error} />;
@@ -216,6 +216,7 @@ function PipelineSummary() {
   const accounts = useQuery({
     queryKey: ["js-accounts-summary", CLIENT_ID],
     queryFn: () => getAccounts(CLIENT_ID),
+    enabled: false,
     refetchInterval: REFRESH,
   });
 
@@ -242,6 +243,7 @@ function OrchestratorSays() {
   const decisions = useQuery({
     queryKey: ["js-decisions", CLIENT_ID],
     queryFn: () => getDecisions(CLIENT_ID),
+    enabled: false,
     refetchInterval: REFRESH,
   });
 
@@ -280,6 +282,7 @@ function TodaysActivity() {
   const activity = useQuery({
     queryKey: ["js-activity", CLIENT_ID],
     queryFn: () => getActivity(CLIENT_ID),
+    enabled: false,
     refetchInterval: REFRESH,
   });
 
@@ -319,24 +322,35 @@ export default function JobSearchDashboardPage() {
     <div className="space-y-6">
       <CompaniesInterested />
 
-      <div>
-        <div className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-          Needs Attention
+      {/* Hidden — leftover ABM-dashboard widgets (orchestrator/pipeline
+          language) copied into the job-search dashboard, not candidate-
+          native. Queries above are also `enabled: false` so nothing polls
+          while hidden. Left intact, not deleted, in case these get a
+          job-search-native rewrite later. */}
+      {false && (
+        <div>
+          <div className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+            Needs Attention
+          </div>
+          <NeedsAttention />
         </div>
-        <NeedsAttention />
-      </div>
+      )}
 
-      <div>
-        <div className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-          Pipeline Summary
+      {false && (
+        <div>
+          <div className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+            Pipeline Summary
+          </div>
+          <PipelineSummary />
         </div>
-        <PipelineSummary />
-      </div>
+      )}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <OrchestratorSays />
-        <TodaysActivity />
-      </div>
+      {false && (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <OrchestratorSays />
+          <TodaysActivity />
+        </div>
+      )}
     </div>
   );
 }
