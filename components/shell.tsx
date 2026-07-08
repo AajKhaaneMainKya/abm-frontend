@@ -392,7 +392,17 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     if (newRole === userRole) return;
     try {
       await setUserRole(newRole);
-      window.location.reload();
+      // Full navigation (not just a reload) — nav already follows DB
+      // user_role, but the current URL doesn't, so switching mode while
+      // sitting on e.g. /hiring/briefs left that page showing under the
+      // new role's nav until the URL itself moved to that role's dashboard.
+      if (newRole === "hiring_manager") {
+        window.location.assign("/hiring/briefs");
+      } else if (newRole === "candidate") {
+        window.location.assign("/job-search");
+      } else {
+        window.location.assign("/");
+      }
     } catch (e) {
       console.error("Role switch failed", e);
     }
