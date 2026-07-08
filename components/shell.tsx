@@ -2,12 +2,12 @@
 
 /**
  * App shell — modern SaaS layout:
- *  - fixed left sidebar (240px) with route-based navigation (Job Search or
- *    Hiring Manager, chosen by the user's permanent DB-backed role). ABM nav
- *    is no longer user-facing — see ROLE_OPTIONS below — but the ABM routes
- *    and their components (ABM_NAV, ClientSelector, TriggerNowButton) are
- *    left intact since they're still live routes, just unreachable from the
- *    switcher/sidebar for regular users now.
+ *  - fixed left sidebar (240px) with route-based navigation, chosen by the
+ *    user's permanent DB-backed role (JOB_NAV / HIRING_NAV / ABM_NAV — see
+ *    the explicit per-role baseNav below). ABM is no longer reachable from
+ *    the switcher (see ROLE_OPTIONS) — only the first-login RoleSelector can
+ *    put someone into 'abm' — but ABM_NAV still renders correctly for
+ *    whoever's already there.
  *  - top bar (56px): page title, global client selector, Trigger Now, user menu
  *  - main content area (white, scrolls)
  *  - first-login role selector (see components/role-selector.tsx) — shown
@@ -368,6 +368,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
     let cancelled = false;
+    // Re-enter loading on every run, not just the first — otherwise
+    // switching to a different Clerk account (user?.id below) would show
+    // the previous account's stale role/nav for the duration of this fetch.
+    setRoleLoading(true);
     getMe()
       .then((me) => {
         if (!cancelled) {
@@ -384,7 +388,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isLoaded, isSignedIn]);
+    // user?.id: refetch when the logged-in Clerk account changes (account
+    // switch), not just on initial load — getMe() was otherwise cached to
+    // whichever user was signed in when this effect first ran.
+  }, [isLoaded, isSignedIn, user?.id]);
 
   useEffect(() => {
     return paywallStore.subscribe((reason) => {
@@ -397,6 +404,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     if (newRole === userRole) return;
     try {
       await setUserRole(newRole);
+      // Update local state immediately — the window.location.assign below
+      // is a full navigation anyway, but this avoids a stale-nav flash in
+      // whatever render happens between the mutation resolving and the
+      // browser actually leaving this page.
+      setUserRoleState(newRole);
       // Full navigation (not just a reload) — nav already follows DB
       // user_role, but the current URL doesn't, so switching mode while
       // sitting on e.g. /hiring/briefs left that page showing under the
@@ -419,11 +431,17 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   const isAdmin = !!ADMIN_CLERK_ID && user?.id === ADMIN_CLERK_ID;
 
-  // No 'abm' branch — ABM nav is no longer user-facing (see ROLE_OPTIONS).
-  // A user can only land here with userRole === 'abm' or null (role not yet
-  // picked) transiently before RoleSelector takes over; HIRING_NAV is the
-  // fallback either way, matching the new two-mode switcher.
-  const baseNav = userRole === "candidate" ? JOB_NAV : HIRING_NAV;
+  // Explicit per role — 'abm' still resolves to ABM_NAV (real ABM accounts
+  // still exist via the first-login RoleSelector and app/page.tsx's ABM
+  // dashboard; they just can't switch back to it from ROLE_OPTIONS anymore).
+  // null/loading (role not yet picked) falls back to JOB_NAV as a neutral
+  // default until RoleSelector takes over — not HIRING_NAV, which was
+  // incorrectly the fallback for both 'abm' and null before this fix.
+  const baseNav =
+    userRole === "candidate" ? JOB_NAV
+    : userRole === "hiring_manager" ? HIRING_NAV
+    : userRole === "abm" ? ABM_NAV
+    : JOB_NAV;
 
   const nav = isAdmin ? [...baseNav, { href: "/admin", label: "Admin Console", icon: Shield }] : baseNav;
 
