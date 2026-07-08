@@ -1101,6 +1101,30 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
   return data;
 }
 
+export interface WaitlistEntry {
+  id: string;
+  email: string;
+  name: string | null;
+  type: "hiring_manager" | "candidate";
+  company: string | null;
+  role: string | null;
+  linkedin_url: string | null;
+  what_built: string | null;
+  created_at: string;
+}
+
+export interface WaitlistOverview {
+  total: number;
+  hiring_managers: number;
+  candidates: number;
+  entries: WaitlistEntry[];
+}
+
+export async function getWaitlist(): Promise<WaitlistOverview> {
+  const res = await api.get<WaitlistOverview>("/api/admin/waitlist");
+  return res.data;
+}
+
 /* ------------------------------------------------------------------ */
 /* Work-email OTP verification (hiring-manager domain proof)          */
 /* ------------------------------------------------------------------ */
