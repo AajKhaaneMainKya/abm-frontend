@@ -42,7 +42,7 @@ import { triggerOrchestrator, getMe, setUserRole, type UserRole, type TrialStatu
 import { paywallStore } from "@/lib/paywall-store";
 
 // Auth/splash routes render bare — no app chrome.
-const BARE_ROUTES = ["/welcome", "/sign-in", "/sign-up", "/onboarding"];
+const BARE_ROUTES = ["/welcome", "/waitlist", "/sign-in", "/sign-up", "/onboarding"];
 
 const ADMIN_CLERK_ID = process.env.NEXT_PUBLIC_ADMIN_CLERK_ID || "";
 

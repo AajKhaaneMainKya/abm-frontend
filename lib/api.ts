@@ -1139,3 +1139,30 @@ export async function getVerifyStatus(): Promise<{
   const res = await api.get("/api/verify/status");
   return res.data;
 }
+
+/* ------------------------------------------------------------------ */
+/* Waitlist — public, unauthenticated (no Clerk token to attach, so     */
+/* these use raw fetch rather than the shared `api` axios instance)    */
+/* ------------------------------------------------------------------ */
+
+export async function joinWaitlist(data: {
+  email: string;
+  name: string;
+  type: "hiring_manager" | "candidate";
+  company?: string;
+  role?: string;
+  linkedin_url?: string;
+  what_built?: string;
+}) {
+  const res = await fetch(`${API_URL}/api/waitlist`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function getWaitlistCount() {
+  const res = await fetch(`${API_URL}/api/waitlist/count`);
+  return res.json();
+}

@@ -15,6 +15,7 @@ import { NextResponse } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
   "/welcome",
+  "/waitlist",
   "/sign-in(.*)",
   "/sign-up(.*)",
 ]);
@@ -24,7 +25,10 @@ export default clerkMiddleware(async (auth, req) => {
 
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.redirect(new URL("/welcome", req.url));
+    // Signed-out visitors hitting the bare root land on the waitlist splash;
+    // every other protected route still bounces to /welcome (sign-in flow).
+    const target = req.nextUrl.pathname === "/" ? "/waitlist" : "/welcome";
+    return NextResponse.redirect(new URL(target, req.url));
   }
 });
 
