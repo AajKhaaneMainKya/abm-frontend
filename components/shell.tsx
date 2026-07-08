@@ -35,6 +35,7 @@ import {
   ChevronDown,
   LogOut,
   User,
+  Users,
   Shield,
   type LucideIcon,
 } from "lucide-react";
@@ -89,6 +90,7 @@ const JOB_NAV: NavItem[] = [
 const HIRING_NAV: NavItem[] = [
   { href: "/hiring/briefs", label: "Briefs", icon: FileText },
   { href: "/hiring/post", label: "Post a Brief", icon: UserPlus },
+  { href: "/hiring/shortlist", label: "Shortlist", icon: Users },
 ];
 
 /** The single best-matching nav href for the current path (longest wins). */
@@ -408,7 +410,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       } else if (newRole === "candidate") {
         window.location.assign("/job-search");
       } else {
-        window.location.assign("/");
+        // Unreachable via the switcher itself (ROLE_OPTIONS only offers
+        // candidate/hiring_manager), kept for UserRole's full union type.
+        // /job-search over / — root now immediately bounces non-abm roles
+        // away anyway (see app/page.tsx), so this avoids a redundant hop.
+        window.location.assign("/job-search");
       }
     } catch (e) {
       console.error("Role switch failed", e);

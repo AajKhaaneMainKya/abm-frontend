@@ -1,22 +1,17 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  listBriefs,
   getBriefShortlist,
   requestReveal,
+  type HiringBrief,
   type ShortlistEntry,
   type ContextGraphExperience,
 } from "@/lib/api";
-import { XpBadge, XpProgress, Loading, ErrorNote } from "@/components/xp";
-
-const POLL_MS = 10_000;
-// The backend has no "matching in progress" flag — a brief's shortlist just
-// stays empty until the background matching thread finishes. This window is
-// the best available proxy: keep showing the "still finding candidates"
-// state for the first few minutes, then fall back to the empty state.
-const MATCHING_WINDOW_MS = 3 * 60 * 1000;
+import { XpBadge, XpProgress, Loading } from "@/components/xp";
 
 function profileChips(entry: ShortlistEntry): {
   industries: string[];
@@ -45,7 +40,42 @@ function profileChips(entry: ShortlistEntry): {
   };
 }
 
-function ShortlistCard({
+function BriefTabs({
+  briefs,
+  selectedBriefId,
+  onSelect,
+}: {
+  briefs: HiringBrief[];
+  selectedBriefId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  if (briefs.length <= 1) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {briefs.map((b) => (
+        <button
+          key={b.id}
+          type="button"
+          onClick={() => onSelect(b.id)}
+          className={`rounded-md border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+            selectedBriefId === b.id
+              ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+              : "border-[var(--border)] bg-white text-[var(--foreground)]"
+          }`}
+        >
+          {b.role_title}
+          {!!b.match_count && (
+            <span className="ml-1.5 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
+              {b.match_count}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CandidateCard({
   entry,
   onReveal,
   revealing,
@@ -56,79 +86,84 @@ function ShortlistCard({
 }) {
   const chips = profileChips(entry);
   const topDims = Object.entries(entry.dimension_scores)
+    .filter(([, d]) => d.weighted_score > 0)
     .sort((a, b) => b[1].weighted_score - a[1].weighted_score)
-    .slice(0, 5);
+    .slice(0, 4);
 
   return (
-    <div className="card p-4">
-      <div className="flex items-start justify-between gap-3">
+    <div className="card p-5">
+      <div className="mb-3 flex items-start justify-between gap-3">
         {entry.anonymous ? (
-          <div className="flex items-center gap-2">
-            <span className="select-none text-[15px] font-semibold text-[var(--foreground)] blur-[3px]">
-              Anonymous Candidate
-            </span>
-            <span className="text-[11px] text-[var(--text-secondary)]">(hidden until revealed)</span>
-          </div>
+          <div className="h-4 w-32 rounded bg-[var(--surface)]" />
         ) : (
-          <span className="text-[15px] font-semibold text-[var(--foreground)]">
-            {entry.profile.name}
-          </span>
+          <span className="text-[16px] font-bold text-[var(--foreground)]">{entry.profile.name}</span>
         )}
-        <span
-          className={`shrink-0 rounded-full px-3 py-1 text-[16px] font-bold ${
+        <div
+          className={`min-w-[70px] shrink-0 rounded-lg border px-3.5 py-2 text-center ${
             entry.score >= 80
-              ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-              : "bg-[var(--surface)] text-[var(--text-secondary)]"
+              ? "border-[var(--accent)]/30 bg-[var(--accent-soft)]"
+              : "border-[var(--border)] bg-[var(--surface)]"
           }`}
         >
-          {Math.round(entry.score)}
-        </span>
-      </div>
-
-      <div className="mt-3 rounded-md bg-[var(--surface)] p-3 text-[13px] leading-relaxed text-[var(--foreground)]">
-        {entry.match_explanation}
-      </div>
-
-      <div className="mt-4 space-y-2">
-        {topDims.map(([key, d]) => (
-          <div key={key} className="flex items-center gap-3">
-            <span className="w-44 shrink-0 truncate text-[12px] text-[var(--text-secondary)]">
-              {d.label} <span className="text-[var(--text-secondary)]">({Math.round(d.weight)}%)</span>
-            </span>
-            <XpProgress
-              value={d.raw_score}
-              tone={d.type === "custom_keyword" ? "purple" : "teal"}
-              className="flex-1"
-            />
-            <span className="w-8 shrink-0 text-right text-[12px] tabular-nums text-[var(--text-secondary)]">
-              {Math.round(d.raw_score)}
-            </span>
+          <div
+            className={`text-[22px] font-extrabold ${
+              entry.score >= 80 ? "text-[var(--accent)]" : "text-[var(--foreground)]"
+            }`}
+          >
+            {Math.round(entry.score)}
           </div>
-        ))}
+          <div className="text-[10px] text-[var(--text-secondary)]">match</div>
+        </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      {entry.match_explanation && (
+        <p className="mb-3 rounded-md bg-[var(--surface)] p-3 text-[13px] leading-relaxed text-[var(--foreground)]">
+          {entry.match_explanation}
+        </p>
+      )}
+
+      {topDims.length > 0 && (
+        <div className="mb-3 space-y-1.5">
+          {topDims.map(([key, d]) => (
+            <div key={key} className="flex items-center gap-2">
+              <span className="w-36 shrink-0 truncate text-[11px] text-[var(--text-secondary)]">
+                {d.label} ({Math.round(d.weight)}%)
+              </span>
+              <XpProgress
+                value={d.raw_score}
+                tone={d.type === "custom_keyword" ? "purple" : "teal"}
+                className="flex-1"
+              />
+              <span className="w-7 shrink-0 text-right text-[11px] font-semibold text-[var(--text-secondary)]">
+                {Math.round(d.raw_score)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mb-3 flex flex-wrap gap-1.5">
         {chips.industries.map((ind) => (
-          <XpBadge key={ind} color="#6b7280">
+          <XpBadge key={ind} color="#0369a1">
             {ind}
           </XpBadge>
         ))}
         {chips.buildsCount > 0 && (
-          <XpBadge color="#7c3aed">
+          <XpBadge color="#7e22ce">
             {chips.buildsCount} build{chips.buildsCount === 1 ? "" : "s"}
           </XpBadge>
         )}
-        {chips.location && chips.location !== "—" && <XpBadge color="#2563eb">{chips.location}</XpBadge>}
+        {chips.location !== "—" && <XpBadge color="#6b7280">{chips.location}</XpBadge>}
       </div>
 
-      <div className="mt-4">
+      <div className="flex justify-end">
         {entry.reveal_state === "signal" && (
           <button type="button" onClick={onReveal} disabled={revealing} className="btn btn-primary">
-            {revealing ? "Requesting…" : "Unlock profile →"}
+            {revealing ? "..." : "Unlock profile →"}
           </button>
         )}
         {entry.reveal_state === "requested" && (
-          <p className="text-[13px] text-[var(--text-secondary)]">⏳ Waiting for approval</p>
+          <span className="py-2 text-[13px] text-[var(--text-secondary)]">⏳ Waiting for candidate to approve</span>
         )}
         {entry.reveal_state === "revealed" && (
           <button type="button" className="btn btn-success">
@@ -136,7 +171,7 @@ function ShortlistCard({
           </button>
         )}
         {entry.reveal_state === "rejected" && (
-          <p className="text-[13px] text-[var(--text-secondary)]">Declined by candidate</p>
+          <span className="py-2 text-[13px] text-[var(--text-secondary)]">Declined by candidate</span>
         )}
       </div>
     </div>
@@ -145,77 +180,88 @@ function ShortlistCard({
 
 function ShortlistInner() {
   const params = useSearchParams();
-  const briefId = params.get("brief") ?? "";
-  const qc = useQueryClient();
-  const [revealingId, setRevealingId] = useState<string | null>(null);
-  // Tracks whether we're still inside the "first run" matching window via a
-  // timer effect rather than comparing Date.now() during render, which would
-  // make this component impure.
-  const [stillMatching, setStillMatching] = useState(true);
+  const briefIdFromUrl = params.get("brief");
 
+  const [briefs, setBriefs] = useState<HiringBrief[]>([]);
+  const [briefsLoaded, setBriefsLoaded] = useState(false);
+  const [selectedBriefId, setSelectedBriefId] = useState<string | null>(briefIdFromUrl);
+  const [candidates, setCandidates] = useState<ShortlistEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [requesting, setRequesting] = useState<string | null>(null);
+
+  // Load all active briefs on mount, defaulting to the first one if none
+  // was specified in the URL (e.g. via the Shortlist nav item directly).
   useEffect(() => {
-    const t = setTimeout(() => setStillMatching(false), MATCHING_WINDOW_MS);
-    return () => clearTimeout(t);
-  }, []);
+    listBriefs()
+      .then((data) => {
+        const active = data.filter((b) => b.active && !b.filled);
+        setBriefs(active);
+        if (!briefIdFromUrl && active.length > 0) {
+          setSelectedBriefId(active[0].id);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setBriefsLoaded(true));
+  }, [briefIdFromUrl]);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["hiring-shortlist", briefId],
-    queryFn: () => getBriefShortlist(briefId),
-    enabled: !!briefId,
-    refetchInterval: POLL_MS,
-  });
+  // Load the shortlist whenever the selected brief changes.
+  useEffect(() => {
+    if (!selectedBriefId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    getBriefShortlist(selectedBriefId)
+      .then((data) => setCandidates(data ?? []))
+      .catch(() => setCandidates([]))
+      .finally(() => setLoading(false));
+  }, [selectedBriefId]);
 
-  const reveal = useMutation({
-    mutationFn: (id: string) => requestReveal(id),
-    onMutate: (id: string) => setRevealingId(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["hiring-shortlist", briefId] }),
-    onSettled: () => setRevealingId(null),
-  });
-
-  if (!briefId) return <ErrorNote error={new Error("Missing ?brief= in the URL.")} />;
-  if (error) return <ErrorNote error={error} />;
-
-  const entries = data ?? [];
-
-  if (isLoading || (entries.length === 0 && stillMatching)) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
-        <div className="mb-4 animate-pulse text-[40px]">🔍</div>
-        <h2 className="text-[16px] font-semibold text-[var(--foreground)]">
-          Finding matched candidates…
-        </h2>
-        <p className="mt-1.5 text-[13px] text-[var(--text-secondary)]">
-          This takes 2-3 minutes for the first run.
-        </p>
-      </div>
-    );
-  }
-
-  if (entries.length === 0) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center text-center text-[13px] text-[var(--text-secondary)]">
-        No matches yet. Check back in a few minutes.
-      </div>
-    );
-  }
+  const handleReveal = async (shortlistId: string) => {
+    setRequesting(shortlistId);
+    try {
+      await requestReveal(shortlistId);
+      setCandidates((prev) =>
+        prev.map((c) => (c.shortlist_id === shortlistId ? { ...c, reveal_state: "requested" } : c)),
+      );
+    } finally {
+      setRequesting(null);
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-[20px] font-bold text-[var(--foreground)]">Shortlist</h1>
-        <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
-          {entries.length} matched candidate{entries.length === 1 ? "" : "s"}
-        </p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-4">
+      <h1 className="text-[20px] font-bold text-[var(--foreground)]">Shortlist</h1>
 
-      {entries.map((entry) => (
-        <ShortlistCard
-          key={entry.shortlist_id}
-          entry={entry}
-          onReveal={() => reveal.mutate(entry.shortlist_id)}
-          revealing={revealingId === entry.shortlist_id}
-        />
-      ))}
+      <BriefTabs briefs={briefs} selectedBriefId={selectedBriefId} onSelect={setSelectedBriefId} />
+
+      {briefsLoaded && briefs.length === 0 && (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[var(--border)] p-12 text-center">
+          <div className="text-[40px]">📋</div>
+          <p className="text-[13px] text-[var(--text-secondary)]">No active briefs yet.</p>
+          <Link href="/hiring/post" className="text-[14px] font-semibold text-[var(--accent)]">
+            Post a brief →
+          </Link>
+        </div>
+      )}
+
+      {loading && <Loading label="Finding matched candidates…" />}
+
+      {!loading &&
+        candidates.map((c) => (
+          <CandidateCard
+            key={c.shortlist_id}
+            entry={c}
+            onReveal={() => handleReveal(c.shortlist_id)}
+            revealing={requesting === c.shortlist_id}
+          />
+        ))}
+
+      {!loading && candidates.length === 0 && selectedBriefId && briefs.length > 0 && (
+        <div className="flex min-h-[30vh] items-center justify-center text-center text-[13px] text-[var(--text-secondary)]">
+          No matches yet. Check back in a few minutes.
+        </div>
+      )}
     </div>
   );
 }
