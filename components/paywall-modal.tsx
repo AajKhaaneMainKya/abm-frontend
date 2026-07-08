@@ -1,5 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { api } from "@/lib/api";
+
 interface PaywallModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -8,8 +12,48 @@ interface PaywallModalProps {
   //         'unlock_limit' | 'client_limit'
 }
 
+interface UpgradeRequestForm {
+  name: string;
+  email: string;
+  company: string;
+  use_case: string;
+}
+
 export default function PaywallModal({ isOpen, onClose, reason }: PaywallModalProps) {
+  const { user } = useUser();
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState<UpgradeRequestForm>({
+    name: "",
+    email: "",
+    company: "",
+    use_case: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: user.fullName || "",
+        email: user.primaryEmailAddress?.emailAddress || "",
+      }));
+    }
+  }, [user]);
+
   if (!isOpen) return null;
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await api.post("/api/upgrade-request", formData);
+      setSubmitted(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const getMessage = () => {
     switch (reason) {
@@ -135,45 +179,115 @@ export default function PaywallModal({ isOpen, onClose, reason }: PaywallModalPr
 
         {/* CTA */}
         <div style={{ marginTop: "24px" }}>
-          <button
-            onClick={() => {
-              // Placeholder — Stripe comes in Phase 2
-              window.open(
-                "mailto:rahul@sahayakhq.co?subject=Sahayak Pro Upgrade&body=Hi, I would like to upgrade to Sahayak Pro.",
-                "_blank",
-              );
-              onClose();
-            }}
-            style={{
-              width: "100%",
-              padding: "14px",
-              background: "#0f766e",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "15px",
-              fontWeight: "700",
-              cursor: "pointer",
-              marginBottom: "10px",
-            }}
-          >
-            Contact us to upgrade →
-          </button>
-          <button
-            onClick={onClose}
-            style={{
-              width: "100%",
-              padding: "10px",
-              background: "transparent",
-              color: "#6b7280",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-              fontSize: "13px",
-              cursor: "pointer",
-            }}
-          >
-            Maybe later
-          </button>
+          {!showForm && !submitted && (
+            <>
+              <button
+                onClick={() => setShowForm(true)}
+                className="btn btn-primary"
+                style={{ width: "100%", padding: "14px", fontSize: "15px", marginBottom: "10px" }}
+              >
+                Request Pro Access →
+              </button>
+              <button
+                onClick={onClose}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  background: "transparent",
+                  color: "#6b7280",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  cursor: "pointer",
+                }}
+              >
+                Maybe later
+              </button>
+            </>
+          )}
+
+          {showForm && !submitted && (
+            <div>
+              <input
+                className="input"
+                style={{ marginBottom: "10px" }}
+                placeholder="Your name"
+                value={formData.name}
+                onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+              />
+              <input
+                className="input"
+                style={{ marginBottom: "10px" }}
+                placeholder="Work email"
+                value={formData.email}
+                onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+              />
+              <input
+                className="input"
+                style={{ marginBottom: "10px" }}
+                placeholder="Company name"
+                value={formData.company}
+                onChange={(e) => setFormData((p) => ({ ...p, company: e.target.value }))}
+              />
+              <textarea
+                className="input"
+                style={{ marginBottom: "10px", resize: "vertical" }}
+                placeholder="What are you trying to do? e.g. hiring a growth PM for our Series A startup"
+                value={formData.use_case}
+                rows={2}
+                onChange={(e) => setFormData((p) => ({ ...p, use_case: e.target.value }))}
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || !formData.email || !formData.company}
+                className="btn btn-primary"
+                style={{ width: "100%", padding: "14px", fontSize: "15px", marginBottom: "10px" }}
+              >
+                {submitting ? "Sending..." : "Send request →"}
+              </button>
+              <button
+                onClick={onClose}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  background: "transparent",
+                  color: "#6b7280",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {submitted && (
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ fontSize: "32px", marginBottom: "8px" }}>✓</div>
+              <p style={{ fontWeight: "600", color: "#111827" }}>Request received.</p>
+              <p style={{ color: "#6b7280", fontSize: "13px" }}>
+                We will reach out within 24 hours with payment details and your GST invoice.
+              </p>
+              <button
+                onClick={onClose}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  marginTop: "12px",
+                  background: "transparent",
+                  color: "#6b7280",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
+          )}
         </div>
 
         <p
