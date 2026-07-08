@@ -5,8 +5,68 @@ import { joinWaitlist } from "@/lib/api";
 
 const TEAL = "#14b8a6";
 const DARK_BG = "#0a0a14";
+const LINKEDIN_URL = "https://www.linkedin.com/in/rshivs/";
 
 type SignupType = "hiring_manager" | "candidate";
+
+const NEXT_STEPS: Record<SignupType, string[]> = {
+  hiring_manager: [
+    "We review your signup personally (24-48 hours)",
+    "We reach out via email to understand your hiring need",
+    "You post your first brief — we match you with builders",
+    "First 20 hiring managers get 30 days free + locked pricing",
+  ],
+  candidate: [
+    "We review every builder personally (24-48 hours)",
+    "If approved — you build your context graph",
+    "Sahayak matches you to the right founders automatically",
+    "No applications. No cover letters. The right founder finds you.",
+  ],
+};
+
+const SHARE_TEXT: Record<SignupType, string> = {
+  hiring_manager:
+    "A founder I know built a hiring platform that matches on what people have built — not their title. Early access: sahayakhq.co",
+  candidate:
+    "Found a hiring platform that's invite-only for candidates and matches you to founders based on what you've built. Free forever. sahayakhq.co",
+};
+
+const shareRowStyle: React.CSSProperties = {
+  display: "block",
+  width: "100%",
+  textAlign: "left",
+  padding: "10px 12px",
+  marginBottom: "10px",
+  background: "transparent",
+  border: "1px solid #e5e7eb",
+  borderRadius: "8px",
+  fontSize: "13px",
+  color: "#111827",
+  cursor: "pointer",
+  fontFamily: "inherit",
+  textDecoration: "none",
+  boxSizing: "border-box",
+};
+
+function ShareButton({ label, text }: { label: string; text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable — button just won't show the "copied" state.
+    }
+  };
+
+  return (
+    <button type="button" onClick={handleCopy} style={shareRowStyle}>
+      → {copied ? "Copied to clipboard ✓" : label}
+    </button>
+  );
+}
 
 function Logo() {
   return (
@@ -333,29 +393,64 @@ function WaitlistForm() {
     }
   };
 
-  if (result) {
+  if (result && signupType) {
     return (
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: "40px", marginBottom: "12px" }}>🎉</div>
-        <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#111827", margin: "0 0 12px 0" }}>
+        <div style={{ fontSize: "40px", marginBottom: "8px" }}>✅</div>
+        <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#111827", margin: "0 0 4px 0" }}>
           You&apos;re on the list.
         </h3>
-        {signupType === "hiring_manager" ? (
-          <p style={{ color: "#4b5563", fontSize: "14px", lineHeight: 1.7, margin: "0 0 16px 0" }}>
-            We&apos;ll reach out personally when we&apos;re ready for your first brief. Founding
-            hiring managers get 30 days free and locked pricing forever.
-          </p>
-        ) : (
-          <p style={{ color: "#4b5563", fontSize: "14px", lineHeight: 1.7, margin: "0 0 16px 0" }}>
-            We review every builder personally. If approved, you&apos;ll be among the first
-            matched to founders on Sahayak. Free forever.
-          </p>
-        )}
+
         {typeof result.position === "number" && (
-          <div style={{ fontSize: "13px", fontWeight: "600", color: TEAL }}>
-            You&apos;re #{result.position} in line
+          <div style={{ fontSize: "32px", fontWeight: "800", color: TEAL, margin: "12px 0 28px 0" }}>
+            You&apos;re #{result.position} on the waitlist
           </div>
         )}
+
+        <div
+          style={{
+            textAlign: "left",
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
+            borderRadius: "12px",
+            padding: "20px",
+            marginBottom: "20px",
+          }}
+        >
+          <div style={{ fontSize: "13px", fontWeight: "700", color: "#111827", marginBottom: "12px" }}>
+            What happens next:
+          </div>
+          <ol style={{ margin: 0, paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            {NEXT_STEPS[signupType].map((step, i) => (
+              <li key={i} style={{ fontSize: "13px", color: "#374151", lineHeight: 1.6 }}>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div style={{ textAlign: "left" }}>
+          <div style={{ fontSize: "12px", fontWeight: "700", color: "#6b7280", marginBottom: "10px" }}>
+            While you wait:
+          </div>
+
+          <ShareButton
+            label={
+              signupType === "hiring_manager"
+                ? "Share with a founder who's hiring"
+                : "Know a founder who's hiring? Send them this"
+            }
+            text={SHARE_TEXT[signupType]}
+          />
+
+          {signupType === "hiring_manager" ? (
+            <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer" style={shareRowStyle}>
+              → Follow the build
+            </a>
+          ) : (
+            <div style={shareRowStyle}>→ Prep your context: think about what you&apos;ve actually shipped</div>
+          )}
+        </div>
       </div>
     );
   }
