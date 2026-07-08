@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Users, Send, MessageSquare, MessagesSquare, ArrowRight, Sparkles } from "lucide-react";
@@ -317,40 +318,20 @@ function TodaysActivity() {
   );
 }
 
+// /job-search has no nav entry anymore (JOB_NAV in components/shell.tsx is
+// now just Profile/Matches/Notifications), so this route was already
+// unreachable via nav and, with its ABM-leftover sections hidden below,
+// effectively blank. Redirect straight to the candidate's actual home.
+//
+// Everything above (CompaniesInterested, NeedsAttention, PipelineSummary,
+// OrchestratorSays, TodaysActivity) is now dead code — kept, not deleted,
+// for reference or a possible job-search-native rewrite later.
 export default function JobSearchDashboardPage() {
-  return (
-    <div className="space-y-6">
-      <CompaniesInterested />
+  const router = useRouter();
 
-      {/* Hidden — leftover ABM-dashboard widgets (orchestrator/pipeline
-          language) copied into the job-search dashboard, not candidate-
-          native. Queries above are also `enabled: false` so nothing polls
-          while hidden. Left intact, not deleted, in case these get a
-          job-search-native rewrite later. */}
-      {false && (
-        <div>
-          <div className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-            Needs Attention
-          </div>
-          <NeedsAttention />
-        </div>
-      )}
+  useEffect(() => {
+    router.replace("/job-search/profile");
+  }, [router]);
 
-      {false && (
-        <div>
-          <div className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-            Pipeline Summary
-          </div>
-          <PipelineSummary />
-        </div>
-      )}
-
-      {false && (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <OrchestratorSays />
-          <TodaysActivity />
-        </div>
-      )}
-    </div>
-  );
+  return null;
 }
