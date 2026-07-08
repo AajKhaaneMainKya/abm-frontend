@@ -1190,3 +1190,34 @@ export async function getWaitlistCount() {
   const res = await fetch(`${API_URL}/api/waitlist/count`);
   return res.json();
 }
+
+/* ------------------------------------------------------------------ */
+/* Telegram — per-user @SahayakHQBot connection                       */
+/* ------------------------------------------------------------------ */
+
+export interface TelegramConnectData {
+  token: string;
+  bot_username: string;
+  instructions: string;
+  deep_link: string;
+}
+
+export interface TelegramStatus {
+  connected: boolean;
+  chat_id: string | null;
+}
+
+export async function generateTelegramToken(): Promise<TelegramConnectData> {
+  const { data } = await api.post<TelegramConnectData>("/api/telegram/generate-connect-token");
+  return data;
+}
+
+export async function getTelegramStatus(): Promise<TelegramStatus> {
+  const { data } = await api.get<TelegramStatus>("/api/telegram/status");
+  return data;
+}
+
+export async function disconnectTelegram(): Promise<{ disconnected: boolean }> {
+  const { data } = await api.delete<{ disconnected: boolean }>("/api/telegram/disconnect");
+  return data;
+}

@@ -6,6 +6,7 @@ import { FileText, ArrowRight } from "lucide-react";
 import { listBriefs, markBriefFilled } from "@/lib/api";
 import { XpBadge, Loading, ErrorNote } from "@/components/xp";
 import { fmtDate } from "@/lib/job-search";
+import TelegramConnect from "@/components/telegram-connect";
 
 export default function BriefsPage() {
   const qc = useQueryClient();
@@ -23,22 +24,34 @@ export default function BriefsPage() {
 
   if (briefs.length === 0) {
     return (
-      <div className="mx-auto mt-10 flex max-w-md flex-col items-center gap-4 rounded-lg border border-[var(--border)] bg-white p-8 text-center shadow-sm">
-        <span className="grid h-12 w-12 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
-          <FileText size={24} />
-        </span>
-        <p className="text-[14px] text-[var(--text-secondary)]">
-          No briefs yet. Post your first brief to start finding candidates.
-        </p>
-        <Link href="/hiring/post" className="btn btn-primary">
-          Post a Brief <ArrowRight size={15} />
-        </Link>
+      <div className="space-y-4">
+        <div>
+          <h2 className="mb-3 text-[16px] font-bold text-[var(--foreground)]">Notifications</h2>
+          <TelegramConnect />
+        </div>
+
+        <div className="mx-auto mt-10 flex max-w-md flex-col items-center gap-4 rounded-lg border border-[var(--border)] bg-white p-8 text-center shadow-sm">
+          <span className="grid h-12 w-12 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
+            <FileText size={24} />
+          </span>
+          <p className="text-[14px] text-[var(--text-secondary)]">
+            No briefs yet. Post your first brief to start finding candidates.
+          </p>
+          <Link href="/hiring/post" className="btn btn-primary">
+            Post a Brief <ArrowRight size={15} />
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      <div>
+        <h2 className="mb-3 text-[16px] font-bold text-[var(--foreground)]">Notifications</h2>
+        <TelegramConnect />
+      </div>
+
       <div className="flex items-center justify-between">
         <p className="text-[13px] text-[var(--text-secondary)]">
           {briefs.length} brief{briefs.length === 1 ? "" : "s"}

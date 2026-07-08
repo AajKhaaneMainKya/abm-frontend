@@ -7,6 +7,7 @@ import { Upload, FileText, Check, Sparkles } from "lucide-react";
 import { getProfile, uploadResume, deleteResume, updateVoiceAnchor, type UserProfile } from "@/lib/api";
 import { Loading, ErrorNote, XpButton, XpBadge } from "@/components/xp";
 import ContextGraphViz from "@/components/context-graph-viz";
+import TelegramConnect from "@/components/telegram-connect";
 
 const PROFILE_QUERY_KEY = ["job-search-profile"];
 
@@ -310,6 +311,11 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
+      <div className="mb-2">
+        <h2 className="mb-3 text-[16px] font-bold text-[var(--foreground)]">Notifications</h2>
+        <TelegramConnect />
+      </div>
+
       <ResumeUpload />
 
       <ResumeList resumes={resumes} onDelete={handleDeleteResume} deletingIndex={deletingIndex} />
